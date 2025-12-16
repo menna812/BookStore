@@ -206,6 +206,7 @@
   padding: 4px;
 }
 
+
 /* =====================
    Remember / Forgot
 ===================== */
@@ -414,3 +415,23 @@
   cursor: pointer;
   font-weight: 600;
 }
+
+/* Error message text */
+.error-text {
+  color: #e53935;          /* red */
+  font-size: 0.85rem;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Input error state */
+.form-input.error {
+  border-color: #e53935;
+}
+
+/* Optional: focus error */
+.form-input.error:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(229, 57, 53, 0.4);
+}
+

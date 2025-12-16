@@ -1,6 +1,7 @@
 import { useState } from "react";
 import LoginPage from "./components/auth/LoginPage";
 import SignupPage from "./components/auth/SignupPage";
+import { ToastProvider } from "./context/ToastContext";
 import "./styles/auth.css";
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
   const logoImageUrl = "";
 
   return (
+    <ToastProvider>
     <div className="auth-page">
       {/* Left side: image */}
       <div className="auth-image-side">
@@ -52,5 +54,8 @@ export default function App() {
         </div>
       </div>
     </div>
+    </ToastProvider>
   );
 }
+
+
