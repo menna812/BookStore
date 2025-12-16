@@ -1,9 +1,12 @@
 import React, { useState } from "react";
+import axios from "axios";
+import { SignupData } from "../../types/auth";
 
 const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
   onSwitchToLogin,
 }) => {
-  const [name, setName] = useState("");
+  const [firstname, setFirstname] = useState("");
+  const [lastname, setLastname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -11,29 +14,67 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (password !== confirmPassword) {
       alert("Passwords do not match!");
       return;
     }
-    console.log("Signup:", { name, email, password, userType });
-    alert(`Account created successfully as ${userType}!`);
+
+    const signupData: SignupData = {
+      firstname: firstname,
+      lastname: lastname,
+      email,
+      password,
+    };
+
+    try {
+      const res = await axios.post(
+        "http://localhost:3000/api/auth/register",
+        signupData
+      );
+
+      // Axios automatically parses JSON
+      alert(`Account created successfully! Your ID: ${res.data.id}`);
+      onSwitchToLogin(); // switch to login page after signup
+    } catch (err: any) {
+      if (err.response) {
+        // server responded with status code outside 2xx
+        alert("Signup error: " + err.response.data.message);
+      } else {
+        alert("Server error. Try again later.");
+      }
+    }
   };
 
   return (
     <div className="auth-form">
       {/* Header: no logo, gradient title */}
-      {/* Name */}
+      {/* first Name */}
       <div className="form-group">
-        <label className="form-label">Full Name</label>
+        <label className="form-label">First Name</label>
         <div className="input-wrapper">
           <span className="input-icon">👤</span>
           <input
             type="text"
             className="form-input"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your Name"
+            value={firstname}
+            onChange={(e) => setFirstname(e.target.value)}
+            placeholder="firstname"
+          />
+        </div>
+      </div>
+
+      {/* lastname */}
+      <div className="form-group">
+        <label className="form-label">Last Name</label>
+        <div className="input-wrapper">
+          <span className="input-icon">👤</span>
+          <input
+            type="text"
+            className="form-input"
+            value={lastname}
+            onChange={(e) => setLastname(e.target.value)}
+            placeholder="lastname"
           />
         </div>
       </div>

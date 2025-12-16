@@ -2,7 +2,7 @@ export interface User {
   id: string;
   fullName: string;
   email: string;
-  role?: 'customer' | 'admin' | 'publisher';
+  role?: "customer" | "admin" | "publisher";
   createdAt?: string;
 }
 
@@ -12,7 +12,8 @@ export interface LoginCredentials {
 }
 
 export interface SignupData {
-  fullName: string;
+  firstname: string;
+  lastname: string;
   email: string;
   password: string;
   confirmPassword?: string;
