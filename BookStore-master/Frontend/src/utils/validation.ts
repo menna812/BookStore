@@ -13,7 +13,10 @@ export const validateEmail = (email: string): ValidationResult => {
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    return { isValid: false, error: "Invalid email format(you@g.com)" };
+    return {
+      isValid: false,
+      error: "Invalid email format (e.g., you@email.com)",
+    };
   }
 
   return { isValid: true };
@@ -27,8 +30,8 @@ export const validatePassword = (password: string): ValidationResult => {
     return { isValid: false, error: "Password is required" };
   }
 
-  if (password.length < 6) {
-    return { isValid: false, error: "Password must be at least 6 characters" };
+  if (password.length < 8) {
+    return { isValid: false, error: "Password must be at least 8 characters" };
   }
 
   return { isValid: true };
@@ -37,17 +40,33 @@ export const validatePassword = (password: string): ValidationResult => {
 /**
  * Validate name (for signup)
  */
-export const validateName = (name: string): ValidationResult => {
+export const validateName = (
+  name: string,
+  fieldName: string = "Name"
+): ValidationResult => {
   if (!name.trim()) {
-    return { isValid: false, error: "Name is required" };
+    return { isValid: false, error: `${fieldName} is required` };
   }
 
   if (name.trim().length < 2) {
-    return { isValid: false, error: "Name must be at least 2 characters" };
+    return {
+      isValid: false,
+      error: `${fieldName} must be at least 2 characters`,
+    };
   }
 
-  if (!/^[a-zA-Z\s]+$/.test(name)) {
-    return { isValid: false, error: "Name can only contain letters and spaces" };
+  if (name.trim().length > 100) {
+    return {
+      isValid: false,
+      error: `${fieldName} must not exceed 100 characters`,
+    };
+  }
+
+  if (!/^[a-zA-Z\s'-]+$/.test(name)) {
+    return {
+      isValid: false,
+      error: `${fieldName} can only contain letters, spaces, hyphens, and apostrophes`,
+    };
   }
 
   return { isValid: true };
@@ -58,12 +77,13 @@ export const validateName = (name: string): ValidationResult => {
  */
 export const validatePhone = (phone: string): ValidationResult => {
   if (!phone.trim()) {
-    return { isValid: false, error: "Phone number is required" };
+    return { isValid: true }; // Phone is optional
   }
 
-  const phoneRegex = /^[0-9]{10,15}$/;
+  const phoneRegex =
+    /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/;
   if (!phoneRegex.test(phone.replace(/[\s-]/g, ""))) {
-    return { isValid: false, error: "Invalid phone number" };
+    return { isValid: false, error: "Invalid phone number format" };
   }
 
   return { isValid: true };
@@ -98,42 +118,57 @@ export const validateLoginForm = (
  * Validate signup form
  */
 export const validateSignupForm = (
-  name: string,
+  firstname: string,
+  lastname: string,
   email: string,
   password: string,
   confirmPassword: string
 ): {
   isValid: boolean;
   errors: {
-    name?: string;
+    firstname?: string;
+    lastname?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
   };
 } => {
   const errors: {
-    name?: string;
+    firstname?: string;
+    lastname?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
   } = {};
 
-  const nameValidation = validateName(name);
-  if (!nameValidation.isValid) {
-    errors.name = nameValidation.error;
+  // Validate first name
+  const firstnameValidation = validateName(firstname, "First name");
+  if (!firstnameValidation.isValid) {
+    errors.firstname = firstnameValidation.error;
   }
 
+  // Validate last name
+  const lastnameValidation = validateName(lastname, "Last name");
+  if (!lastnameValidation.isValid) {
+    errors.lastname = lastnameValidation.error;
+  }
+
+  // Validate email
   const emailValidation = validateEmail(email);
   if (!emailValidation.isValid) {
     errors.email = emailValidation.error;
   }
 
+  // Validate password
   const passwordValidation = validatePassword(password);
   if (!passwordValidation.isValid) {
     errors.password = passwordValidation.error;
   }
 
-  if (password !== confirmPassword) {
+  // Validate confirm password - this is the critical part
+  if (!confirmPassword || confirmPassword.trim() === "") {
+    errors.confirmPassword = "Please confirm your password";
+  } else if (password !== confirmPassword) {
     errors.confirmPassword = "Passwords do not match";
   }
 

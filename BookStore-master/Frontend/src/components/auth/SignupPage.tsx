@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { SignupData } from "../../types/auth";
+import { validateSignupForm } from "../../utils/validation";
+import { useToast } from "../../context/ToastContext";
 
 const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
   onSwitchToLogin,
@@ -14,69 +15,162 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const [errors, setErrors] = useState<{
+    firstname?: string;
+    lastname?: string;
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { showSuccess, showError } = useToast();
+
   const handleSubmit = async () => {
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+    // Clear previous errors
+    setErrors({});
+
+    // Validate form using the utility function
+    const validation = validateSignupForm(
+      firstname,
+      lastname,
+      email,
+      password,
+      confirmPassword
+    );
+
+    if (!validation.isValid) {
+      setErrors(validation.errors);
+      // Show first error as toast
+      const firstError = Object.values(validation.errors)[0];
+      if (firstError) {
+        showError(firstError);
+      }
       return;
     }
 
-    const signupData: SignupData = {
-      firstname: firstname,
-      lastname: lastname,
-      email,
-      password,
+    // Prepare signup data
+    const signupData = {
+      firstname: firstname.trim(),
+      lastname: lastname.trim(),
+      email: email.trim().toLowerCase(),
+      password: password,
     };
 
+    console.log("Signup data:", signupData); // Debug log
+
+    // Determine the endpoint based on user type
+    const endpoint =
+      userType === "customer"
+        ? "http://localhost:3000/api/auth/register"
+        : "http://localhost:3000/api/admin/register";
+
+    setIsLoading(true);
     try {
-      const res = await axios.post(
-        "http://localhost:3000/api/auth/register",
-        signupData
+      const res = await axios.post(endpoint, signupData);
+
+      console.log("Signup response:", res.data); // Debug log
+
+      // Show success toast
+      showSuccess(
+        `${
+          userType === "customer" ? "Customer" : "Admin"
+        } account created successfully!`
       );
 
-      // Axios automatically parses JSON
-      alert(`Account created successfully! Your ID: ${res.data.id}`);
-      onSwitchToLogin(); // switch to login page after signup
+      // Clear form
+      setFirstname("");
+      setLastname("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setUserType("customer");
+
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        onSwitchToLogin();
+      }, 1500);
     } catch (err: any) {
+      console.error("Signup error:", err); // Debug log
+
       if (err.response) {
-        // server responded with status code outside 2xx
-        alert("Signup error: " + err.response.data.message);
+        // Server responded with error
+        const errorMessage = err.response.data.message || "Signup failed";
+        showError(errorMessage);
+
+        // If email already exists, highlight email field
+        if (errorMessage.toLowerCase().includes("email")) {
+          setErrors({ email: errorMessage });
+        }
+      } else if (err.request) {
+        // Request made but no response
+        showError("Cannot connect to server. Please check your connection.");
       } else {
-        alert("Server error. Try again later.");
+        // Something else happened
+        showError("An unexpected error occurred. Please try again.");
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle Enter key press
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !isLoading) {
+      handleSubmit();
     }
   };
 
   return (
     <div className="auth-form">
-      {/* Header: no logo, gradient title */}
-      {/* first Name */}
+      {/* First Name */}
       <div className="form-group">
         <label className="form-label">First Name</label>
         <div className="input-wrapper">
           <span className="input-icon">👤</span>
           <input
             type="text"
-            className="form-input"
+            className={`form-input ${errors.firstname ? "error" : ""}`}
             value={firstname}
-            onChange={(e) => setFirstname(e.target.value)}
-            placeholder="firstname"
+            onChange={(e) => {
+              setFirstname(e.target.value);
+              if (errors.firstname) {
+                setErrors({ ...errors, firstname: undefined });
+              }
+            }}
+            onKeyPress={handleKeyPress}
+            placeholder="first Name"
+            disabled={isLoading}
           />
         </div>
+        {errors.firstname && (
+          <span className="error-text">{errors.firstname}</span>
+        )}
       </div>
 
-      {/* lastname */}
+      {/* Last Name */}
       <div className="form-group">
         <label className="form-label">Last Name</label>
         <div className="input-wrapper">
           <span className="input-icon">👤</span>
           <input
             type="text"
-            className="form-input"
+            className={`form-input ${errors.lastname ? "error" : ""}`}
             value={lastname}
-            onChange={(e) => setLastname(e.target.value)}
-            placeholder="lastname"
+            onChange={(e) => {
+              setLastname(e.target.value);
+              if (errors.lastname) {
+                setErrors({ ...errors, lastname: undefined });
+              }
+            }}
+            onKeyPress={handleKeyPress}
+            placeholder="Last name"
+            disabled={isLoading}
           />
         </div>
+        {errors.lastname && (
+          <span className="error-text">{errors.lastname}</span>
+        )}
       </div>
 
       {/* Email */}
@@ -86,12 +180,20 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
           <span className="input-icon">✉️</span>
           <input
             type="email"
-            className="form-input"
+            className={`form-input ${errors.email ? "error" : ""}`}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errors.email) {
+                setErrors({ ...errors, email: undefined });
+              }
+            }}
+            onKeyPress={handleKeyPress}
             placeholder="you@example.com"
+            disabled={isLoading}
           />
         </div>
+        {errors.email && <span className="error-text">{errors.email}</span>}
       </div>
 
       {/* Password */}
@@ -101,19 +203,30 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
           <span className="input-icon">🔒</span>
           <input
             type={showPassword ? "text" : "password"}
-            className="form-input"
+            className={`form-input ${errors.password ? "error" : ""}`}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (errors.password) {
+                setErrors({ ...errors, password: undefined });
+              }
+            }}
+            onKeyPress={handleKeyPress}
             placeholder="••••••••"
+            disabled={isLoading}
           />
           <button
             type="button"
             className="password-toggle"
             onClick={() => setShowPassword(!showPassword)}
+            disabled={isLoading}
           >
-            👁️
+            {showPassword ? "🙈" : "👁️"}
           </button>
         </div>
+        {errors.password && (
+          <span className="error-text">{errors.password}</span>
+        )}
       </div>
 
       {/* Confirm Password */}
@@ -123,22 +236,35 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
           <span className="input-icon">🔒</span>
           <input
             type={showConfirmPassword ? "text" : "password"}
-            className="form-input"
+            className={`form-input ${errors.confirmPassword ? "error" : ""}`}
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              if (errors.confirmPassword) {
+                setErrors({ ...errors, confirmPassword: undefined });
+              }
+            }}
+            onKeyPress={handleKeyPress}
             placeholder="••••••••"
+            disabled={isLoading}
           />
           <button
             type="button"
             className="password-toggle"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            disabled={isLoading}
           >
-            👁️
+            {showConfirmPassword ? "🙈" : "👁️"}
           </button>
         </div>
+        {errors.confirmPassword && (
+          <span className="error-text">{errors.confirmPassword}</span>
+        )}
       </div>
+
       {/* User Type */}
       <div className="form-group">
+        <label className="form-label">Account Type</label>
         <div className="radio-group">
           <label className="radio-circle-label">
             <input
@@ -147,6 +273,7 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
               value="customer"
               checked={userType === "customer"}
               onChange={() => setUserType("customer")}
+              disabled={isLoading}
             />
             <span className="radio-circle"></span>
             Customer
@@ -159,15 +286,28 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
               value="admin"
               checked={userType === "admin"}
               onChange={() => setUserType("admin")}
+              disabled={isLoading}
             />
             <span className="radio-circle"></span>
             Admin
           </label>
         </div>
       </div>
+
       {/* Submit */}
-      <button className="submit-btn" onClick={handleSubmit}>
-        Sign Up
+      <button
+        className="submit-btn"
+        onClick={handleSubmit}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <>
+            <span className="spinner"></span>
+            Creating account...
+          </>
+        ) : (
+          "Sign Up"
+        )}
       </button>
 
       {/* Switch to Login */}
