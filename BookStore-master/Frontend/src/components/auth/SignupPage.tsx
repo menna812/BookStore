@@ -164,7 +164,7 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
               }
             }}
             onKeyPress={handleKeyPress}
-            placeholder="Last name"
+            placeholder="Last Name"
             disabled={isLoading}
           />
         </div>

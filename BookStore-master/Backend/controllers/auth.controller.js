@@ -25,7 +25,7 @@ const handleLogin = async (req, res, next, model, schema, role) => {
 
     // 3. JWT Generation (Sets the correct ID key based on user type)
     const token = jwt.sign(
-      { id: user.customer_id || user.admin_id, role: role },
+      { userId: user.customer_id || user.admin_id, role: role },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );

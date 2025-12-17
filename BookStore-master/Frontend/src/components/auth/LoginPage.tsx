@@ -10,10 +10,12 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
+    {}
+  );
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { showSuccess, showError } = useToast();
 
   const handleSubmit = async () => {
@@ -21,10 +23,10 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
 
     // Frontend validation
     const validation = validateLoginForm(email, password);
-    
+
     if (!validation.isValid) {
       setErrors(validation.errors);
-      
+
       // Show error toasts for validation
       if (validation.errors.email) {
         showError(validation.errors.email);
@@ -47,19 +49,20 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
 
       // Show success toast
       showSuccess("Login successful! Redirecting...");
-      
+
       // Redirect based on role after a short delay
       setTimeout(() => {
-        if (response.role === 'admin') {
+        if (response.role === "admin") {
           window.location.href = "/admin/dashboard";
         } else {
           window.location.href = "/";
         }
       }, 1000);
-
     } catch (error: any) {
       // Show error toast
-      showError(error.message || "Login failed. Please check your credentials.");
+      showError(
+        error.message || "Login failed. Please check your credentials."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +70,7 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
 
   // Handle Enter key press
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !isLoading) {
+    if (e.key === "Enter" && !isLoading) {
       handleSubmit();
     }
   };
@@ -125,7 +128,9 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
             {showPassword ? "🙈" : "👁️"}
           </button>
         </div>
-        {errors.password && <span className="error-text">{errors.password}</span>}
+        {errors.password && (
+          <span className="error-text">{errors.password}</span>
+        )}
       </div>
 
       {/* Remember / Forgot */}
@@ -143,8 +148,8 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
       </div>
 
       {/* Submit */}
-      <button 
-        className="submit-btn" 
+      <button
+        className="submit-btn"
         onClick={handleSubmit}
         disabled={isLoading}
       >
