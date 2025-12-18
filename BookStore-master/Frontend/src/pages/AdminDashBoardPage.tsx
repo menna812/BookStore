@@ -237,10 +237,15 @@ const BooksManagement = () => {
         return;
       }
 
-      const created = await res.json();
-
-      // update UI table
-      setBooks((prev) => [...prev, created]);
+      const newUiBook: Book = {
+        isbn: newBook.isbn,
+        title: newBook.title,
+        author: "", // You don't collect names yet
+        category: newBook.category,
+        stock: Number(newBook.stock),
+        price: Number(newBook.price),
+      };
+      setBooks((prev) => [...prev, newUiBook]);
 
       // close & reset form
       setShowForm(false);
