@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import AuthPage from "./pages/Authpage"; // ← Import AuthPage
+import AuthPage from "./pages/Authpage";
 import CheckoutPage from "./pages/CheckoutPage";
 import { ToastProvider } from "./context/ToastContext";
 import { HomeProvider } from "./context/HomeContext";
@@ -10,6 +10,7 @@ import { Footer } from "./components/common/Footer";
 import "./styles/auth.css";
 import "./styles/homepage.css";
 import "./styles/layout.css";
+import AdminDashboard from "./pages/AdminDashBoardPage";
 
 // Layout wrapper to conditionally show Header/Footer
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -44,6 +45,7 @@ export default function App() {
               <Route path="/login" element={<AuthPage />} />
               <Route path="/signup" element={<AuthPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
             </Routes>
           </Layout>
         </HomeProvider>
