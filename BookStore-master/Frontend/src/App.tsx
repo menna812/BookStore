@@ -1,61 +1,50 @@
-import { useState } from "react";
-import LoginPage from "./components/auth/LoginPage";
-import SignupPage from "./components/auth/SignupPage";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import AuthPage from "./pages/Authpage";  // ← Import AuthPage
 import { ToastProvider } from "./context/ToastContext";
+import { HomeProvider } from "./context/HomeContext";
+import { HomePage } from "./pages/Homepage";
+import { Header } from './components/common/Navbar';
+import { Footer } from './components/common/Footer';
+
 import "./styles/auth.css";
+import "./styles/homepage.css";
+import './styles/layout.css';
+
+// Layout wrapper to conditionally show Header/Footer
+const Layout = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  
+  // Don't show Header/Footer on auth pages
+  const hideLayout = location.pathname === '/login' || location.pathname === '/signup';
+  
+  if (hideLayout) {
+    return <>{children}</>;
+  }
+  
+  return (
+    <>
+      <Header />
+      <main>{children}</main>
+      <Footer />
+    </>
+  );
+};
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'login' | 'signup'>('login');
-
-  const logoEmoji = "📖";
-  const useImageLogo = false;
-  const logoImageUrl = "";
-
   return (
     <ToastProvider>
-    <div className="auth-page">
-      {/* Left side: image */}
-      <div className="auth-image-side">
-        <img
-          src="https://images.unsplash.com/photo-1512820790803-83ca734da794"
-          alt="Books"
-        />
-      </div>
-
-      {/* Right side: login/signup container */}
-      <div className="auth-container">
-        <div className="auth-card">
-          {/* Header */}
-          <div className="auth-header">
-            {currentPage === 'login' ? (
-              <>
-                <div className="logo-icon">
-                    <img 
-                      src="\assets\images\logo.png"
-                      alt="Booktopia Logo" 
-                    />
-                </div>
-                <div className="auth-title gradient-title">Booktopia</div>
-                <div className="logo-subtext">Your literary adventure awaits</div>
-              </>
-            ) : (
-              <>
-                <div className="auth-title gradient-title">Booktopia</div>
-                <div className="logo-subtext">Create your account</div>
-              </>
-            )}
-          </div>
-          {/* Pages */}
-          {currentPage === 'login' ? (
-            <LoginPage onSwitchToSignup={() => setCurrentPage('signup')} />
-          ) : (
-            <SignupPage onSwitchToLogin={() => setCurrentPage('login')} />
-          )}
-        </div>
-      </div>
-    </div>
+      <BrowserRouter>
+        <HomeProvider>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              {/* Use AuthPage for both login and signup */}
+              <Route path="/login" element={<AuthPage />} />
+              <Route path="/signup" element={<AuthPage />} />
+            </Routes>
+          </Layout>
+        </HomeProvider>
+      </BrowserRouter>
     </ToastProvider>
   );
 }
-
-

@@ -71,7 +71,7 @@
 .logo-icon {
   width: 100px;
   height: 100px;
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+  background: transparent;
   border-radius: 20px;
   display: inline-flex;
   align-items: center;
@@ -90,10 +90,14 @@
 }
 
 .logo-icon img {
-  width: 1000px;       /* adjust size */
-  height: 100px;
-  object-fit: contain; /* keep aspect ratio */
-  border-radius: 12px; /* optional, if you want rounded corners */
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  margin: auto;
+  padding: 1%;
+
 }
 
 .logo-text {
