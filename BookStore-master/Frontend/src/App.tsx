@@ -1,26 +1,28 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import AuthPage from "./pages/Authpage";  // ← Import AuthPage
+import AuthPage from "./pages/Authpage"; // ← Import AuthPage
+import CheckoutPage from "./pages/CheckoutPage";
 import { ToastProvider } from "./context/ToastContext";
 import { HomeProvider } from "./context/HomeContext";
 import { HomePage } from "./pages/Homepage";
-import { Header } from './components/common/Navbar';
-import { Footer } from './components/common/Footer';
+import { Header } from "./components/common/Navbar";
+import { Footer } from "./components/common/Footer";
 
 import "./styles/auth.css";
 import "./styles/homepage.css";
-import './styles/layout.css';
+import "./styles/layout.css";
 
 // Layout wrapper to conditionally show Header/Footer
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  
+
   // Don't show Header/Footer on auth pages
-  const hideLayout = location.pathname === '/login' || location.pathname === '/signup';
-  
+  const hideLayout =
+    location.pathname === "/login" || location.pathname === "/signup";
+
   if (hideLayout) {
     return <>{children}</>;
   }
-  
+
   return (
     <>
       <Header />
@@ -41,6 +43,7 @@ export default function App() {
               {/* Use AuthPage for both login and signup */}
               <Route path="/login" element={<AuthPage />} />
               <Route path="/signup" element={<AuthPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
             </Routes>
           </Layout>
         </HomeProvider>
