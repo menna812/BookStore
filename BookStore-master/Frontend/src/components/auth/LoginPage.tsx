@@ -10,6 +10,7 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [userType, setUserType] = useState<"customer" | "admin">("customer");
 
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {}
@@ -37,20 +38,29 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
       return;
     }
 
-    // Call backend API
+    // Call backend API based on user type
     setIsLoading(true);
     try {
-      const response = await authService.login({ email, password });
+      const loginFunction =
+        userType === "admin" ? authService.adminLogin : authService.login;
+      const response = await loginFunction({ email, password });
 
-      // Store token
-      localStorage.setItem("authToken", response.token);
-      localStorage.setItem("userId", response.userId.toString());
-      localStorage.setItem("userRole", response.role);
+      // Check if userId exists before calling .toString()
+      if (response.userId !== undefined && response.userId !== null) {
+        localStorage.setItem("userId", response.userId.toString());
+      } else {
+        // Fallback in case backend didn't send userId
+        console.warn("Warning: userId is missing from the response");
+        localStorage.removeItem("userId");
+      }
 
-      // Show success toast
-      showSuccess("Login successful! Redirecting...");
+      // userRole is always a string
+      if (response.role) {
+        localStorage.setItem("userRole", response.role);
+      }
 
-      // Redirect based on role after a short delay
+      showSuccess(`Login successful! Welcome back.`);
+
       setTimeout(() => {
         if (response.role === "admin") {
           window.location.href = "/admin/dashboard";
@@ -59,10 +69,8 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
         }
       }, 1000);
     } catch (error: any) {
-      // Show error toast
-      showError(
-        error.message || "Login failed. Please check your credentials."
-      );
+      console.error("Login error:", error);
+      showError(error.message || "Login failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -77,6 +85,38 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
 
   return (
     <div className="auth-form">
+      {/* User Type Selection */}
+      <div className="form-group">
+        <label className="form-label">Login As</label>
+        <div className="radio-group">
+          <label className="radio-circle-label">
+            <input
+              type="radio"
+              name="userType"
+              value="customer"
+              checked={userType === "customer"}
+              onChange={() => setUserType("customer")}
+              disabled={isLoading}
+            />
+            <span className="radio-circle"></span>
+            Customer
+          </label>
+
+          <label className="radio-circle-label">
+            <input
+              type="radio"
+              name="userType"
+              value="admin"
+              checked={userType === "admin"}
+              onChange={() => setUserType("admin")}
+              disabled={isLoading}
+            />
+            <span className="radio-circle"></span>
+            Admin
+          </label>
+        </div>
+      </div>
+
       {/* Email */}
       <div className="form-group">
         <label className="form-label">Email Address</label>
@@ -159,7 +199,7 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
             Logging in...
           </>
         ) : (
-          "Login"
+          `Login as ${userType === "admin" ? "Admin" : "Customer"}`
         )}
       </button>
 
