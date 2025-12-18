@@ -44,7 +44,13 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
       const loginFunction =
         userType === "admin" ? authService.adminLogin : authService.login;
       const response = await loginFunction({ email, password });
-
+      // storing token locally on the browser to use to authenticate admin
+      if (response.token) {
+        localStorage.setItem("token", response.token);
+      } else {
+        console.warn("Warning: token is missing from the login response");
+        localStorage.removeItem("token");
+      }
       // Check if userId exists before calling .toString()
       if (response.userId !== undefined && response.userId !== null) {
         localStorage.setItem("userId", response.userId.toString());

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BookOpen,
   Package,
@@ -128,117 +128,322 @@ const AdminDashboard = () => {
   );
 };
 
+interface Book {
+  isbn: string;
+  title: string;
+  author: string; // combined author names from backend
+  category: string;
+  stock: number;
+  price: number;
+}
+
 // Books Management Component
 const BooksManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [books, setBooks] = useState([
-    {
-      isbn: "978-0-123456-78-9",
-      title: "Introduction to Algorithms",
-      author: "Thomas H. Cormen",
-      category: "Science",
-      stock: 150,
-      price: 89.99,
-    },
-    {
-      isbn: "978-0-987654-32-1",
-      title: "The Art of War",
-      author: "Sun Tzu",
-      category: "History",
-      stock: 45,
-      price: 15.99,
-    },
-    {
-      isbn: "978-1-234567-89-0",
-      title: "World Geography Atlas",
-      author: "National Geographic",
-      category: "Geography",
-      stock: 12,
-      price: 34.99,
-    },
-  ]);
-  const handleAddBook = () => {};
-  return (
-    <div className="flex-column gap-4">
-      {/* Action Bar */}
-      <div className="flex gap-4">
-        <div className="search-container">
-          <Search
-            size={20}
-            style={{
-              position: "absolute",
-              left: "12px",
-              top: "50%",
-              transform: "translateY(-50%)",
-              opacity: 0.6,
-            }}
-          />
-          <input
-            type="text"
-            placeholder="Search books by ISBN, title, author, or category..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-        </div>
-        <button className="add-btn" onClick={handleAddBook}>
-          <Plus size={20} />
-          Add New Book
-        </button>
-      </div>
+  const [token, setToken] = useState<string | null>(null);
 
-      {/* Books Table */}
-      <div className="table-wrapper">
-        <div style={{ overflowX: "auto" }}>
-          <table
-            className="table"
-            style={{ width: "100%", borderCollapse: "collapse" }}
-          >
-            <thead>
-              <tr>
-                <th>ISBN</th>
-                <th>Title</th>
-                <th>Author</th>
-                <th>Category</th>
-                <th>Stock</th>
-                <th>Price</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {books.map((book, index) => (
-                <tr key={index}>
-                  <td>{book.isbn}</td>
-                  <td>{book.title}</td>
-                  <td>{book.author}</td>
-                  <td>
-                    <span className="badge badge-green">{book.category}</span>
-                  </td>
-                  <td>
-                    <span
-                      className={book.stock < 20 ? "stock-red" : "stock-green"}
-                    >
-                      {book.stock}
-                    </span>
-                  </td>
-                  <td>${book.price}</td>
-                  <td>
-                    <div className="flex gap-4">
-                      <button className="action-btn edit">
-                        <Edit size={16} />
-                      </button>
-                      <button className="action-btn delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    console.log("Dashboard sees token:", t);
+    setToken(t);
+  }, []);
+  const [books, setBooks] = useState<Book[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [newBook, setNewBook] = useState({
+    isbn: "",
+    title: "",
+    year: "",
+    stock: "",
+    threshold: "",
+    category: "Science",
+    price: "",
+    publisher_id: "",
+    author_ids: "", // we'll store as comma-separated: "1,2,3"
+  });
+
+  const mapBookFromApi = (b: any): Book => ({
+    isbn: b.ISBN,
+    title: b.Title,
+    author: b.authors || "",
+    category: b.Category,
+    stock: b.stock_quantity,
+    price: b.sellingPrice,
+  });
+
+  useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/books/search");
+        const data = await res.json();
+        console.log("Fetched books:", data);
+
+        const uiBooks = data.map(mapBookFromApi);
+        setBooks(uiBooks);
+      } catch (err) {
+        console.error("Failed to fetch books:", err);
+      }
+    };
+
+    fetchBooks();
+  }, []);
+
+  const handleAddBook = () => {
+    setShowForm(true); // show modal
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setNewBook((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    // Prepare payload matching Joi schema
+    const payload = {
+      isbn: newBook.isbn.replace(/-/g, ""), // strip hyphens just in case
+      title: newBook.title,
+      year: Number(newBook.year),
+      stock: Number(newBook.stock),
+      threshold: Number(newBook.threshold),
+      category: newBook.category,
+      price: Number(newBook.price),
+      publisher_id: Number(newBook.publisher_id),
+      author_ids: newBook.author_ids
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+        .map((id) => Number(id)),
+    };
+
+    //where did ik the token from app.js and the bookroutes
+    try {
+      console.log("Token used in /api/books:", token);
+      const res = await fetch("http://localhost:3000/api/books", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Error response:", errorText);
+        alert("Failed to add book");
+        return;
+      }
+
+      const created = await res.json();
+
+      // update UI table
+      setBooks((prev) => [...prev, created]);
+
+      // close & reset form
+      setShowForm(false);
+      setNewBook({
+        isbn: "",
+        title: "",
+        year: "",
+        stock: "",
+        threshold: "",
+        category: "Science",
+        price: "",
+        publisher_id: "",
+        author_ids: "",
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Network error while adding book");
+    }
+  };
+
+  return (
+    <>
+      {showForm && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <h2>Add New Book</h2>
+
+            <form onSubmit={handleSubmit} className="modal-form">
+              <input
+                name="isbn"
+                placeholder="ISBN (13 digits, no hyphens)"
+                value={newBook.isbn}
+                onChange={handleChange}
+                required
+              />
+              <input
+                name="title"
+                placeholder="Title"
+                value={newBook.title}
+                onChange={handleChange}
+                required
+              />
+              <input
+                name="year"
+                type="number"
+                placeholder="Publication Year"
+                value={newBook.year}
+                onChange={handleChange}
+                required
+              />
+              <input
+                name="stock"
+                type="number"
+                placeholder="Stock quantity"
+                value={newBook.stock}
+                onChange={handleChange}
+                required
+              />
+              <input
+                name="threshold"
+                type="number"
+                placeholder="Threshold"
+                value={newBook.threshold}
+                onChange={handleChange}
+                required
+              />
+              <select
+                name="category"
+                value={newBook.category}
+                onChange={handleChange}
+                required
+              >
+                <option value="Science">Science</option>
+                <option value="Art">Art</option>
+                <option value="Religion">Religion</option>
+                <option value="History">History</option>
+                <option value="Geography">Geography</option>
+              </select>
+              <input
+                name="price"
+                type="number"
+                step="0.01"
+                placeholder="Price"
+                value={newBook.price}
+                onChange={handleChange}
+                required
+              />
+              <input
+                name="publisher_id"
+                type="number"
+                placeholder="Publisher ID"
+                value={newBook.publisher_id}
+                onChange={handleChange}
+                required
+              />
+              <input
+                name="author_ids"
+                placeholder="Author IDs (comma separated, e.g. 1,2,3)"
+                value={newBook.author_ids}
+                onChange={handleChange}
+                required
+              />
+
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="cancel-btn"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="submit-btn">
+                  Add Book
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-column gap-4">
+        {/* Action Bar */}
+        <div className="flex gap-4">
+          <div className="search-container">
+            <Search
+              size={20}
+              style={{
+                position: "absolute",
+                left: "12px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                opacity: 0.6,
+              }}
+            />
+            <input
+              type="text"
+              placeholder="Search books by ISBN, title, author, or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          <button className="add-btn" onClick={handleAddBook}>
+            <Plus size={20} />
+            Add New Book
+          </button>
+        </div>
+
+        {/* Books Table */}
+        <div className="table-wrapper">
+          <div style={{ overflowX: "auto" }}>
+            <table
+              className="table"
+              style={{ width: "100%", borderCollapse: "collapse" }}
+            >
+              <thead>
+                <tr>
+                  <th>ISBN</th>
+                  <th>Title</th>
+                  <th>Author</th>
+                  <th>Category</th>
+                  <th>Stock</th>
+                  <th>Price</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {books?.map((book, index) => (
+                  <tr key={index}>
+                    <td>{book.isbn}</td>
+                    <td>{book.title}</td>
+                    <td>{book.author}</td>
+                    <td>
+                      <span className="badge badge-green">{book.category}</span>
+                    </td>
+                    <td>
+                      <span
+                        className={
+                          book.stock < 20 ? "stock-red" : "stock-green"
+                        }
+                      >
+                        {book.stock}
+                      </span>
+                    </td>
+                    <td>${book.price}</td>
+                    <td>
+                      <div className="flex gap-4">
+                        <button className="action-btn edit">
+                          <Edit size={16} />
+                        </button>
+                        <button className="action-btn delete">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

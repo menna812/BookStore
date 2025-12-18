@@ -31,6 +31,7 @@ const handleLogin = async (req, res, next, model, schema, role) => {
     );
 
     // 4. Success Response
+    // returns a token to identify the admin
     res.json({
       token,
       role: role,
