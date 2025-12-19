@@ -29,17 +29,19 @@ export const HomeProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setError(null);
 
-      const [bestPicksData, topSellersData, categoriesData, authorsData] = await Promise.all([
-        homeService.fetchBestPicks(),
-        homeService.fetchTopSellers(),
-        homeService.fetchBookCategories(),
-        homeService.fetchFeaturedAuthors()
-      ]);
+      // Components now fetch their own data directly
+      // Commenting out to avoid 404 errors
+      // const [bestPicksData, topSellersData, categoriesData, authorsData] = await Promise.all([
+      //   homeService.fetchBestPicks(),
+      //   homeService.fetchTopSellers(),
+      //   homeService.fetchBookCategories(),
+      //   homeService.fetchFeaturedAuthors()
+      // ]);
 
-      setBestPicks(bestPicksData);
-      setTopSellers(topSellersData);
-      setCategories(categoriesData);
-      setFeaturedAuthors(authorsData);
+      // setBestPicks(bestPicksData);
+      // setTopSellers(topSellersData);
+      // setCategories(categoriesData);
+      // setFeaturedAuthors(authorsData);
     } catch (err) {
       setError('Failed to load data. Please try again later.');
       console.error('Error loading home data:', err);

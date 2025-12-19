@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import AuthPage from "./pages/Authpage";
 import CheckoutPage from "./pages/CheckoutPage";
+import AllBooksPage from "./pages/AllBooksPage";
 import { ToastProvider } from "./context/ToastContext";
 import { HomeProvider } from "./context/HomeContext";
 import { HomePage } from "./pages/Homepage";
@@ -9,6 +10,9 @@ import { Footer } from "./components/common/Footer";
 
 import "./styles/auth.css";
 import "./styles/homepage.css";
+import "./styles/bookgallery.css";
+import "./styles/allbooks.css";
+import "./styles/categoryicons.css";
 import "./styles/layout.css";
 import AdminDashboard from "./pages/AdminDashBoardPage";
 
@@ -41,6 +45,7 @@ export default function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/books" element={<AllBooksPage />} />
               {/* Use AuthPage for both login and signup */}
               <Route path="/login" element={<AuthPage />} />
               <Route path="/signup" element={<AuthPage />} />

@@ -1,52 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import '../../styles/homepage.css';
 
+interface Author {
+  author_id: number;
+  author_name: string;
+  avatar: string;
+}
+
 export const FeaturedAuthors: React.FC = () => {
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [authors, setAuthors] = useState<Author[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const authors = [
-    {
-      id: 1,
-      name: "Paulo Coelho",
-      image: "/assets/images/author1.jpg"
-    },
-    {
-      id: 2,
-      name: "Sudha Murty",
-      image: "/assets/images/author2.jpg"
-    },
-    {
-      id: 3,
-      name: "Joseph",
-      image: "/assets/images/author3.jpg"
-    },
-    {
-      id: 4,
-      name: "Shakespeare",
-      image: "/assets/images/author4.jpg"
-    },
-    {
-      id: 5,
-      name: "Arundhati Roy",
-      image: "/assets/images/author5.jpg"
-    },
-    {
-      id: 6,
-      name: "J.K. Rowling",
-      image: "/assets/images/author6.jpg"
-    },
-    {
-      id: 7,
-      name: "Stephen King",
-      image: "/assets/images/author7.jpg"
-    },
-    {
-      id: 8,
-      name: "Agatha Christie",
-      image: "/assets/images/author8.jpg"
-    }
-  ];
+  useEffect(() => {
+    const fetchFeaturedAuthors = async () => {
+      try {
+        const url = `${import.meta.env.VITE_API_URL}/authors/featured`;
+        console.log('Fetching from:', url);
+        const response = await fetch(url);
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          throw new Error('Failed to fetch featured authors');
+        }
+        const data = await response.json();
+        console.log('Authors data:', data);
+        setAuthors(data.authors);
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedAuthors();
+  }, []);
 
   const scrollLeft = () => {
     const container = document.getElementById('authors-container');
@@ -66,39 +56,44 @@ export const FeaturedAuthors: React.FC = () => {
     <section className="featured-authors-section">
       <div className="featured-authors-container">
         <h2 className="featured-authors-title">Featured Authors</h2>
-        
-        <div className="authors-carousel-wrapper">
-          <button 
-            className="carousel-btn carousel-btn-left"
-            onClick={scrollLeft}
-            aria-label="Scroll left"
-          >
-            <ChevronLeft size={24} />
-          </button>
 
-          <div className="authors-carousel" id="authors-container">
-            {authors.map((author) => (
-              <div key={author.id} className="author-item">
-                <div className="author-image-wrapper">
-                  <img 
-                    src={author.image} 
-                    alt={author.name}
-                    className="author-image"
-                  />
+        {loading && <p>Loading featured authors...</p>}
+        {error && <p className="error-message">Error: {error}</p>}
+
+        {!loading && !error && (
+          <div className="authors-carousel-wrapper">
+            <button
+              className="carousel-btn carousel-btn-left"
+              onClick={scrollLeft}
+              aria-label="Scroll left"
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            <div className="authors-carousel" id="authors-container">
+              {authors.map((author) => (
+                <div key={author.author_id} className="author-item">
+                  <div className="author-image-wrapper">
+                    <img
+                      src={author.avatar}
+                      alt={author.author_name}
+                      className="author-image"
+                    />
+                  </div>
+                  <p className="author-name">{author.author_name}</p>
                 </div>
-                <p className="author-name">{author.name}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          <button 
-            className="carousel-btn carousel-btn-right"
-            onClick={scrollRight}
-            aria-label="Scroll right"
-          >
-            <ChevronRight size={24} />
-          </button>
-        </div>
+            <button
+              className="carousel-btn carousel-btn-right"
+              onClick={scrollRight}
+              aria-label="Scroll right"
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

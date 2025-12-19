@@ -10,6 +10,7 @@ const orderRoutes = require('./routes/order.routes');
 const adminRoutes = require('./routes/admin.routes');
 const reportRoutes = require('./routes/report.routes'); // Admin only
 const customerRoutes = require('./routes/customer.routes');
+const authorRoutes = require('./routes/author.routes');
 
 const app = express();
 
@@ -23,8 +24,9 @@ app.use('/api/books', bookRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reports', reportRoutes);
-app.use('/api/admin', adminRoutes); 
+app.use('/api/admin', adminRoutes);
 app.use('/api/customer', customerRoutes);
+app.use('/api/authors', authorRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

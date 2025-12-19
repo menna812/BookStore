@@ -63,7 +63,7 @@ export const TopSellers: React.FC = () => {
   return (
     <section className="top-sellers-section">
         <div className="top-sellers-container">
-          <h2 className="top-sellers-title">Top Sellers</h2>
+          <h2 className="top-sellers-title">Booktopia BestSellers</h2>
           
           <div className="top-sellers-grid">
             {topSellers.map((book) => (

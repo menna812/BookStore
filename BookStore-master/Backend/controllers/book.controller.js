@@ -27,7 +27,7 @@ exports.addBook = async (req, res, next) => {
 
     // 2. Insert into BOOK_AUTHOR table for each author
     for (const authorId of bookData.author_ids) {
-        await Book.linkAuthor(bookData.isbn, authorId);
+      await Book.linkAuthor(bookData.isbn, authorId);
     }
 
     await connection.commit();
@@ -36,7 +36,7 @@ exports.addBook = async (req, res, next) => {
   } catch (err) {
     await connection.rollback();
     // Handle specific DB errors (e.g., duplicate ISBN or invalid FK)
-    next(err); 
+    next(err);
   } finally {
     connection.release();
   }
@@ -47,17 +47,39 @@ exports.modifyBook = async (req, res, next) => {
   try {
     const { isbn } = req.params;
     const { stock_quantity } = req.body;
-    
+
     if (typeof stock_quantity !== 'number') {
-        return res.status(400).json({ message: "stock_quantity must be a number." });
+      return res.status(400).json({ message: "stock_quantity must be a number." });
     }
 
     // This call activates the database triggers (Negative Stock Check & Restock Trigger)
-    await Book.updateStock(isbn, stock_quantity); 
+    await Book.updateStock(isbn, stock_quantity);
 
     res.json({ message: "Book stock updated successfully." });
   } catch (err) {
     // If a trigger fails (e.g., negative stock), the error will be caught here
+    next(err);
+  }
+};
+
+// Public route: Get top rated books
+exports.getTopRatedBooks = async (req, res, next) => {
+  try {
+    const query = `
+      SELECT b.*, p.name as publisher_name, GROUP_CONCAT(a.author_name) as authors 
+      FROM BOOK b
+      LEFT JOIN PUBLISHER p ON b.Publisher_id = p.Publisher_id
+      LEFT JOIN BOOK_AUTHOR ba ON b.ISBN = ba.ISBN
+      LEFT JOIN AUTHOR a ON ba.author_id = a.author_id
+      WHERE b.rating IS NOT NULL
+      GROUP BY b.ISBN
+      ORDER BY b.rating DESC, b.rating_count DESC
+      LIMIT 4
+    `;
+
+    const [books] = await db.execute(query);
+    res.json(books);
+  } catch (err) {
     next(err);
   }
 };
