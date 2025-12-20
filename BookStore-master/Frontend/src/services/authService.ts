@@ -6,6 +6,7 @@ export interface AuthResponse {
   token: string;
   role: "customer" | "admin";
   userId: number;
+  user?: any;
 }
 
 export interface LoginData {
@@ -17,10 +18,13 @@ export const authService = {
   /**
    * Customer login
    */
-  login: async (data: LoginData): Promise<AuthResponse> => {
+  login: async (emailOrData: string | LoginData, password?: string): Promise<AuthResponse> => {
     try {
+      const data: LoginData = typeof emailOrData === 'string'
+        ? { email: emailOrData, password: password! }
+        : emailOrData;
       const res = await axios.post(`${API_URL}/auth/login`, data);
-      return res.data;
+      return { ...res.data, user: res.data };
     } catch (err: any) {
       if (err.response) {
         // Server responded with error
@@ -65,14 +69,15 @@ export const authService = {
   /**
    * Logout
    */
-  logout: async (token: string): Promise<{ message: string }> => {
+  logout: async (token?: string): Promise<{ message: string }> => {
     try {
+      const authToken = token || localStorage.getItem("token") || "";
       const res = await axios.post(
         `${API_URL}/auth/logout`,
         {},
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${authToken}`,
           },
         }
       );
@@ -80,6 +85,52 @@ export const authService = {
     } catch (err: any) {
       if (err.response) {
         const message = err.response.data.message || "Logout failed";
+        throw new Error(message);
+      } else if (err.request) {
+        throw new Error(
+          "Cannot connect to server. Please check your connection."
+        );
+      } else {
+        throw new Error("An unexpected error occurred. Please try again.");
+      }
+    }
+  },
+
+  /**
+   * Get current user
+   */
+  getCurrentUser: async (): Promise<any> => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    try {
+      const res = await axios.get(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return res.data;
+    } catch (err) {
+      return null;
+    }
+  },
+
+  /**
+   * Signup
+   */
+  signup: async (fullName: string, email: string, password: string): Promise<AuthResponse> => {
+    try {
+      const [firstname, ...lastnameParts] = fullName.split(' ');
+      const lastname = lastnameParts.join(' ');
+
+      const res = await axios.post(`${API_URL}/auth/register`, {
+        firstname,
+        lastname,
+        email,
+        password,
+      });
+      return { ...res.data, user: res.data };
+    } catch (err: any) {
+      if (err.response) {
+        const message = err.response.data.message || "Signup failed";
         throw new Error(message);
       } else if (err.request) {
         throw new Error(

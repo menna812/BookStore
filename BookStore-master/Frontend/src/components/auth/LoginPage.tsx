@@ -93,38 +93,29 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
     <div className="auth-form">
       {/* User Type Selection */}
       <div className="form-group">
-        <label className="form-label">Login As</label>
-        <div className="radio-group">
-          <label className="radio-circle-label">
-            <input
-              type="radio"
-              name="userType"
-              value="customer"
-              checked={userType === "customer"}
-              onChange={() => setUserType("customer")}
-              disabled={isLoading}
-            />
-            <span className="radio-circle"></span>
+        {/* <label className="form-label">Login As</label> */}
+        <div className="toggle-wrapper">
+          <button
+            type="button"
+            className={`toggle-option ${userType === "customer" ? "active" : ""}`}
+            onClick={() => setUserType("customer")}
+            disabled={isLoading}
+          >
             Customer
-          </label>
-
-          <label className="radio-circle-label">
-            <input
-              type="radio"
-              name="userType"
-              value="admin"
-              checked={userType === "admin"}
-              onChange={() => setUserType("admin")}
-              disabled={isLoading}
-            />
-            <span className="radio-circle"></span>
+          </button>
+          <button
+            type="button"
+            className={`toggle-option ${userType === "admin" ? "active" : ""}`}
+            onClick={() => setUserType("admin")}
+            disabled={isLoading}
+          >
             Admin
-          </label>
+          </button>
         </div>
       </div>
 
       {/* Email */}
-      <div className="form-group">
+      <div className="form-group mb-4">
         <label className="form-label">Email Address</label>
         <div className="input-wrapper">
           <span className="input-icon">✉️</span>
@@ -147,7 +138,7 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
       </div>
 
       {/* Password */}
-      <div className="form-group">
+      <div className="form-group mb-4">
         <label className="form-label">Password</label>
         <div className="input-wrapper">
           <span className="input-icon">🔒</span>
@@ -180,7 +171,7 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
       </div>
 
       {/* Remember / Forgot */}
-      <div className="remember-row">
+      <div className="remember-row d-flex justify-content-between align-items-center mb-4">
         <label className="checkbox-label">
           <input
             type="checkbox"
@@ -195,7 +186,7 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
 
       {/* Submit */}
       <button
-        className="submit-btn"
+        className="submit-btn mb-4"
         onClick={handleSubmit}
         disabled={isLoading}
       >

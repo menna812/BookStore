@@ -73,8 +73,7 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
 
       // Show success toast
       showSuccess(
-        `${
-          userType === "customer" ? "Customer" : "Admin"
+        `${userType === "customer" ? "Customer" : "Admin"
         } account created successfully!`
       );
 
@@ -123,8 +122,29 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
 
   return (
     <div className="auth-form">
-      {/* First Name */}
+        {/* User Type */}
       <div className="form-group">
+        <div className="toggle-wrapper">
+          <button
+            type="button"
+            className={`toggle-option ${userType === "customer" ? "active" : ""}`}
+            onClick={() => setUserType("customer")}
+            disabled={isLoading}
+          >
+            Customer
+          </button>
+          <button
+            type="button"
+            className={`toggle-option ${userType === "admin" ? "active" : ""}`}
+            onClick={() => setUserType("admin")}
+            disabled={isLoading}
+          >
+            Admin
+          </button>
+        </div>
+      </div>
+      {/* First Name */}
+      <div className="form-group mb-4">
         <label className="form-label">First Name</label>
         <div className="input-wrapper">
           <span className="input-icon">👤</span>
@@ -149,7 +169,7 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
       </div>
 
       {/* Last Name */}
-      <div className="form-group">
+      <div className="form-group mb-4">
         <label className="form-label">Last Name</label>
         <div className="input-wrapper">
           <span className="input-icon">👤</span>
@@ -174,7 +194,7 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
       </div>
 
       {/* Email */}
-      <div className="form-group">
+      <div className="form-group mb-4">
         <label className="form-label">Email Address</label>
         <div className="input-wrapper">
           <span className="input-icon">✉️</span>
@@ -197,7 +217,7 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
       </div>
 
       {/* Password */}
-      <div className="form-group">
+      <div className="form-group mb-4">
         <label className="form-label">Password</label>
         <div className="input-wrapper">
           <span className="input-icon">🔒</span>
@@ -230,7 +250,7 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
       </div>
 
       {/* Confirm Password */}
-      <div className="form-group">
+      <div className="form-group mb-4">
         <label className="form-label">Confirm Password</label>
         <div className="input-wrapper">
           <span className="input-icon">🔒</span>
@@ -262,37 +282,7 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
         )}
       </div>
 
-      {/* User Type */}
-      <div className="form-group">
-        <label className="form-label">Account Type</label>
-        <div className="radio-group">
-          <label className="radio-circle-label">
-            <input
-              type="radio"
-              name="userType"
-              value="customer"
-              checked={userType === "customer"}
-              onChange={() => setUserType("customer")}
-              disabled={isLoading}
-            />
-            <span className="radio-circle"></span>
-            Customer
-          </label>
-
-          <label className="radio-circle-label">
-            <input
-              type="radio"
-              name="userType"
-              value="admin"
-              checked={userType === "admin"}
-              onChange={() => setUserType("admin")}
-              disabled={isLoading}
-            />
-            <span className="radio-circle"></span>
-            Admin
-          </label>
-        </div>
-      </div>
+    
 
       {/* Submit */}
       <button
