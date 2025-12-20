@@ -47,9 +47,14 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
       // storing token locally on the browser to use to authenticate admin
       if (response.token) {
         localStorage.setItem("token", response.token);
+        // store the email so header can fall back to it immediately after login
+        if (response.role === "admin") {
+          localStorage.setItem("adminEmail", email);
+        }
       } else {
         console.warn("Warning: token is missing from the login response");
         localStorage.removeItem("token");
+        localStorage.removeItem("adminEmail");
       }
       // Check if userId exists before calling .toString()
       if (response.userId !== undefined && response.userId !== null) {
@@ -97,7 +102,9 @@ const LoginPage: React.FC<{ onSwitchToSignup: () => void }> = ({
         <div className="toggle-wrapper">
           <button
             type="button"
-            className={`toggle-option ${userType === "customer" ? "active" : ""}`}
+            className={`toggle-option ${
+              userType === "customer" ? "active" : ""
+            }`}
             onClick={() => setUserType("customer")}
             disabled={isLoading}
           >

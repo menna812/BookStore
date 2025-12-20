@@ -19,6 +19,48 @@ import "../styles/dashboard.css";
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeMenu, setActiveMenu] = useState("books");
+  const [adminProfile, setAdminProfile] = useState<any>(null);
+
+  // Fetch admin profile for header display
+  useEffect(() => {
+    const t = localStorage.getItem("token");
+    if (!t) {
+      // If no token, but we have a cached email from login, show it
+      const cached = localStorage.getItem("adminEmail");
+      if (cached)
+        setAdminProfile((prev: any) => ({ ...(prev || {}), email: cached }));
+      return;
+    }
+
+    (async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/admin/profile", {
+          headers: { Authorization: `Bearer ${t}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAdminProfile({
+            name: `${data.firstname || ""} ${data.lastname || ""}`.trim(),
+            email: data.email,
+            avatar: data.avatar,
+          });
+        } else {
+          // fallback to cached email if profile fetch fails
+          const cached = localStorage.getItem("adminEmail");
+          if (cached)
+            setAdminProfile((prev: any) => ({
+              ...(prev || {}),
+              email: cached,
+            }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch admin profile:", err);
+        const cached = localStorage.getItem("adminEmail");
+        if (cached)
+          setAdminProfile((prev: any) => ({ ...(prev || {}), email: cached }));
+      }
+    })();
+  }, []);
 
   const menuItems = [
     { id: "books", label: "Books Management", icon: BookOpen },
@@ -95,7 +137,16 @@ const AdminDashboard = () => {
 
         {/* Logout */}
         <div className="sidebar-footer">
-          <button className="logout-btn">
+          <button
+            className="logout-btn"
+            onClick={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("userId");
+              localStorage.removeItem("userRole");
+              localStorage.removeItem("adminEmail");
+              window.location.href = "/";
+            }}
+          >
             <LogOut size={20} />
             {sidebarOpen && <span>Logout</span>}
           </button>
@@ -112,12 +163,23 @@ const AdminDashboard = () => {
 
           <div className="flex gap-4">
             <div>
-              <p>Admin User</p>
+              <p>{adminProfile?.name || "Admin User"}</p>
               <p style={{ fontSize: "12px", color: "#6b7280" }}>
-                admin@booktopia.com
+                {adminProfile?.email || "admin@booktopia.com"}
               </p>
             </div>
-            <div className="profile-circle">A</div>
+            {adminProfile?.avatar ? (
+              <img
+                src={adminProfile.avatar}
+                alt="avatar"
+                className="profile-circle"
+                style={{ objectFit: "cover" }}
+              />
+            ) : (
+              <div className="profile-circle">
+                {(adminProfile?.name?.charAt(0) || "A").toUpperCase()}
+              </div>
+            )}
           </div>
         </header>
 
@@ -143,6 +205,7 @@ interface Book {
 // Books Management Component
 const BooksManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -150,6 +213,7 @@ const BooksManagement = () => {
     console.log("Dashboard sees token:", t);
     setToken(t);
   }, []);
+
   const [books, setBooks] = useState<Book[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -183,8 +247,60 @@ const BooksManagement = () => {
         : undefined,
   });
 
-  const fetchBooks = async () => {
+  const fetchBooks = async (keyword?: string, category?: string) => {
     try {
+      // Build query depending on inputs
+      if (keyword) {
+        // Query both keyword (title/isbn) and author filters in parallel, include category if present
+        const url1 = new URL("http://localhost:3000/api/books/search");
+        url1.searchParams.set("keyword", keyword);
+        if (category) url1.searchParams.set("category", category);
+
+        const url2 = new URL("http://localhost:3000/api/books/search");
+        url2.searchParams.set("author", keyword);
+        if (category) url2.searchParams.set("category", category);
+
+        const [r1, r2] = await Promise.all([
+          fetch(url1.toString()),
+          fetch(url2.toString()),
+        ]);
+        const data1 = r1.ok ? await r1.json() : [];
+        const data2 = r2.ok ? await r2.json() : [];
+
+        // Merge and dedupe by ISBN
+        const combined: any[] = [];
+        const seen = new Set<string>();
+        for (const item of [...data1, ...data2]) {
+          const isbn = item.ISBN || item.isbn;
+          if (!seen.has(isbn)) {
+            seen.add(isbn);
+            combined.push(item);
+          }
+        }
+
+        const uiBooks = combined.map((b: any) => ({
+          ...mapBookFromApi(b),
+          avatar: b.avatar || "",
+        }));
+        setBooks(uiBooks);
+        return;
+      }
+
+      // If only category selected, query by category
+      if (category) {
+        const url = new URL("http://localhost:3000/api/books/search");
+        url.searchParams.set("category", category);
+        const res = await fetch(url.toString());
+        const data = await res.json();
+        const uiBooks = data.map((b: any) => ({
+          ...mapBookFromApi(b),
+          avatar: b.avatar || "",
+        }));
+        setBooks(uiBooks);
+        return;
+      }
+
+      // No filters — fetch all
       const res = await fetch("http://localhost:3000/api/books/search");
       const data = await res.json();
       console.log("Fetched books:", data);
@@ -540,11 +656,52 @@ const BooksManagement = () => {
             />
             <input
               type="text"
-              placeholder="Search books by ISBN, title, author, or category..."
+              placeholder="Search by ISBN, title, or author..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  fetchBooks(searchTerm, categoryFilter);
+                }
+              }}
               className="search-input"
             />
+
+            <select
+              className="category-select"
+              value={categoryFilter}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                fetchBooks(searchTerm, e.target.value);
+              }}
+            >
+              <option value="">All categories</option>
+              <option value="Science">Science</option>
+              <option value="Art">Art</option>
+              <option value="Religion">Religion</option>
+              <option value="History">History</option>
+              <option value="Geography">Geography</option>
+            </select>
+            <button
+              className="search-btn"
+              type="button"
+              onClick={() => fetchBooks(searchTerm, categoryFilter)}
+            >
+              <Search size={16} />
+              Search
+            </button>
+            <button
+              className="clear-btn"
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setCategoryFilter("");
+                fetchBooks();
+              }}
+            >
+              Clear
+            </button>
           </div>
           <button className="add-btn" onClick={handleAddBook}>
             <Plus size={20} />
