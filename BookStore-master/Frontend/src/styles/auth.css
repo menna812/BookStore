@@ -196,6 +196,7 @@
   font-family: inherit;
   box-sizing: border-box;
   background-color: #f0ebe3 !important;
+   color:black;
 }
 
 .form-input:focus,
