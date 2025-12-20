@@ -391,11 +391,28 @@
   border-radius: 12px;
   width: 400px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+  /* allow modal content to scroll if it grows taller than viewport */
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+/* make modal responsive on narrow screens */
+@media (max-width: 520px) {
+  .modal { width: calc(100% - 32px); padding: 16px; }
 }
 
 .modal h2 {
   margin-bottom: 16px;
   color: #065f46;
+}
+
+/* constrain images inside modal so previews don't push the layout */
+.modal img {
+  max-width: 100%;
+  max-height: 220px;
+  display: block;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 /* ====== FORM ====== */

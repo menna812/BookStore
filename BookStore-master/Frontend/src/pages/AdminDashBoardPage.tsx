@@ -135,6 +135,9 @@ interface Book {
   category: string;
   stock: number;
   price: number;
+  avatar?: string;
+  rating?: number;
+  rating_count?: number;
 }
 
 // Books Management Component
@@ -149,7 +152,8 @@ const BooksManagement = () => {
   }, []);
   const [books, setBooks] = useState<Book[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [newBook, setNewBook] = useState({
+  const [isEditing, setIsEditing] = useState(false);
+  const [newBook, setNewBook] = useState<any>({
     isbn: "",
     title: "",
     year: "",
@@ -158,7 +162,10 @@ const BooksManagement = () => {
     category: "Science",
     price: "",
     publisher_id: "",
-    author_ids: "", // we'll store as comma-separated: "1,2,3"
+    author_ids: "", // comma-separated list for convenience
+    avatar: "",
+    rating: "",
+    rating_count: "",
   });
 
   const mapBookFromApi = (b: any): Book => ({
@@ -168,101 +175,201 @@ const BooksManagement = () => {
     category: b.Category,
     stock: b.stock_quantity,
     price: b.sellingPrice,
+    avatar: b.avatar || "",
+    rating: typeof b.rating !== "undefined" ? Number(b.rating) : undefined,
+    rating_count:
+      typeof b.rating_count !== "undefined"
+        ? Number(b.rating_count)
+        : undefined,
   });
 
+  const fetchBooks = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/api/books/search");
+      const data = await res.json();
+      console.log("Fetched books:", data);
+
+      const uiBooks = data.map((b: any) => ({
+        ...mapBookFromApi(b),
+        avatar: b.avatar || "",
+      }));
+      setBooks(uiBooks);
+    } catch (err) {
+      console.error("Failed to fetch books:", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/api/books/search");
-        const data = await res.json();
-        console.log("Fetched books:", data);
-
-        const uiBooks = data.map(mapBookFromApi);
-        setBooks(uiBooks);
-      } catch (err) {
-        console.error("Failed to fetch books:", err);
-      }
-    };
-
     fetchBooks();
   }, []);
 
   const handleAddBook = () => {
-    setShowForm(true); // show modal
+    setNewBook({
+      isbn: "",
+      title: "",
+      year: "",
+      stock: "",
+      threshold: "",
+      category: "Science",
+      price: "",
+      publisher_id: "",
+      author_ids: "",
+      avatar: "",
+      rating: "",
+      rating_count: "",
+    });
+    setIsEditing(false);
+    setShowForm(true);
+  };
+
+  const handleEdit = (book: any) => {
+    // Prefill form with what we have; some fields (like author IDs) may need manual input
+    setNewBook({
+      isbn: book.isbn,
+      title: book.title,
+      year: (book as any).Publication_year || "",
+      stock: String(book.stock || ""),
+      threshold: String((book as any).threshold || ""),
+      category: book.category || "Science",
+      price: String(book.price || ""),
+      publisher_id: String((book as any).Publisher_id || ""),
+      author_ids: "",
+      avatar: book.avatar || "",
+      rating: book.rating != null ? String(book.rating) : "",
+      rating_count: book.rating_count != null ? String(book.rating_count) : "",
+    });
+    setIsEditing(true);
+    setShowForm(true);
   };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setNewBook((prev) => ({ ...prev, [name]: value }));
+    setNewBook((prev: any) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      // Avoid sending very large data URLs that won't fit in DB (<=255)
+      if (dataUrl.length > 240) {
+        alert(
+          "Selected image is too large to store as a data URL (DB limit). Please provide an image URL or choose a smaller image."
+        );
+        return;
+      }
+      setNewBook((prev: any) => ({ ...prev, avatar: dataUrl }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Prepare payload matching Joi schema
-    const payload = {
-      isbn: newBook.isbn.replace(/-/g, ""), // strip hyphens just in case
+    const payload: any = {
+      isbn: newBook.isbn ? newBook.isbn.replace(/-/g, "") : undefined,
       title: newBook.title,
-      year: Number(newBook.year),
-      stock: Number(newBook.stock),
-      threshold: Number(newBook.threshold),
+      year: newBook.year ? Number(newBook.year) : undefined,
+      stock: newBook.stock ? Number(newBook.stock) : undefined,
+      threshold: newBook.threshold ? Number(newBook.threshold) : undefined,
       category: newBook.category,
-      price: Number(newBook.price),
-      publisher_id: Number(newBook.publisher_id),
+      price: newBook.price ? Number(newBook.price) : undefined,
+      publisher_id: newBook.publisher_id
+        ? Number(newBook.publisher_id)
+        : undefined,
       author_ids: newBook.author_ids
-        .split(",")
-        .map((id) => id.trim())
-        .filter(Boolean)
-        .map((id) => Number(id)),
+        ? newBook.author_ids
+            .split(",")
+            .map((id: string) => id.trim())
+            .filter(Boolean)
+            .map((id: string) => Number(id))
+        : undefined,
+      avatar: newBook.avatar || undefined,
+      rating:
+        typeof newBook.rating !== "undefined" && newBook.rating !== ""
+          ? Number(newBook.rating)
+          : undefined,
+      rating_count:
+        typeof newBook.rating_count !== "undefined" &&
+        newBook.rating_count !== ""
+          ? Number(newBook.rating_count)
+          : undefined,
     };
 
-    //where did ik the token from app.js and the bookroutes
     try {
-      console.log("Token used in /api/books:", token);
-      const res = await fetch("http://localhost:3000/api/books", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      if (!token) throw new Error("Missing auth token");
 
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error("Error response:", errorText);
-        alert("Failed to add book");
-        return;
+      if (isEditing) {
+        const res = await fetch(
+          `http://localhost:3000/api/books/${newBook.isbn}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!res.ok) {
+          const txt = await res.text();
+          console.error("Failed to update book:", txt);
+          alert(`Failed to update book: ${txt}`);
+          return;
+        }
+
+        await fetchBooks();
+      } else {
+        const res = await fetch("http://localhost:3000/api/books", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const txt = await res.text();
+          console.error("Failed to add book:", txt);
+          alert(`Failed to add book: ${txt}`);
+          return;
+        }
+
+        await fetchBooks();
       }
 
-      const newUiBook: Book = {
-        isbn: newBook.isbn,
-        title: newBook.title,
-        author: "", // You don't collect names yet
-        category: newBook.category,
-        stock: Number(newBook.stock),
-        price: Number(newBook.price),
-      };
-      setBooks((prev) => [...prev, newUiBook]);
-
-      // close & reset form
       setShowForm(false);
-      setNewBook({
-        isbn: "",
-        title: "",
-        year: "",
-        stock: "",
-        threshold: "",
-        category: "Science",
-        price: "",
-        publisher_id: "",
-        author_ids: "",
-      });
+      setIsEditing(false);
     } catch (err) {
       console.error(err);
-      alert("Network error while adding book");
+      alert("Network or auth error");
+    }
+  };
+
+  const handleDelete = async (isbn: string) => {
+    if (!confirm(`Delete book ${isbn}? This cannot be undone.`)) return;
+    try {
+      if (!token) throw new Error("Missing auth token");
+      const res = await fetch(`http://localhost:3000/api/books/${isbn}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error("Delete failed:", txt);
+        alert(`Failed to delete book: ${txt}`);
+        return;
+      }
+      setBooks((prev) => prev.filter((b) => b.isbn !== isbn));
+    } catch (err) {
+      console.error(err);
+      alert("Network or auth error");
     }
   };
 
@@ -271,7 +378,7 @@ const BooksManagement = () => {
       {showForm && (
         <div className="modal-overlay">
           <div className="modal">
-            <h2>Add New Book</h2>
+            <h2>{isEditing ? "Edit Book" : "Add New Book"}</h2>
 
             <form onSubmit={handleSubmit} className="modal-form">
               <input
@@ -279,7 +386,8 @@ const BooksManagement = () => {
                 placeholder="ISBN (13 digits, no hyphens)"
                 value={newBook.isbn}
                 onChange={handleChange}
-                required
+                required={!isEditing}
+                disabled={isEditing}
               />
               <input
                 name="title"
@@ -333,6 +441,26 @@ const BooksManagement = () => {
                 onChange={handleChange}
                 required
               />
+
+              <input
+                name="rating"
+                type="number"
+                step="0.1"
+                min="0"
+                max="5"
+                placeholder="Rating (0-5, optional)"
+                value={newBook.rating}
+                onChange={handleChange}
+              />
+              <input
+                name="rating_count"
+                type="number"
+                min="0"
+                placeholder="Rating count (optional)"
+                value={newBook.rating_count}
+                onChange={handleChange}
+              />
+
               <input
                 name="publisher_id"
                 type="number"
@@ -346,19 +474,49 @@ const BooksManagement = () => {
                 placeholder="Author IDs (comma separated, e.g. 1,2,3)"
                 value={newBook.author_ids}
                 onChange={handleChange}
-                required
+                // optional for edits
+                required={!isEditing}
               />
+
+              {/* Optional avatar upload (file becomes data URL) */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <label style={{ fontSize: 12, color: "#6b7280" }}>
+                  Optional cover image (data URL must be 255 chars or less;
+                  otherwise provide an image URL)
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+                <input
+                  name="avatar"
+                  placeholder="Or provide an image URL"
+                  value={newBook.avatar}
+                  onChange={handleChange}
+                />
+                {newBook.avatar && (
+                  <img
+                    src={newBook.avatar}
+                    alt="cover"
+                    style={{ width: 80, height: 100, objectFit: "cover" }}
+                  />
+                )}
+              </div>
 
               <div className="modal-actions">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => {
+                    setShowForm(false);
+                    setIsEditing(false);
+                  }}
                   className="cancel-btn"
                 >
                   Cancel
                 </button>
                 <button type="submit" className="submit-btn">
-                  Add Book
+                  {isEditing ? "Save Changes" : "Add Book"}
                 </button>
               </div>
             </form>
@@ -404,11 +562,13 @@ const BooksManagement = () => {
               <thead>
                 <tr>
                   <th>ISBN</th>
+                  <th>Cover</th>
                   <th>Title</th>
                   <th>Author</th>
                   <th>Category</th>
                   <th>Stock</th>
                   <th>Price</th>
+                  <th>Rating</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -416,6 +576,17 @@ const BooksManagement = () => {
                 {books?.map((book, index) => (
                   <tr key={index}>
                     <td>{book.isbn}</td>
+                    <td style={{ width: 72 }}>
+                      {book.avatar ? (
+                        <img
+                          src={book.avatar}
+                          alt="cover"
+                          style={{ width: 48, height: 64, objectFit: "cover" }}
+                        />
+                      ) : (
+                        <span style={{ color: "#9ca3af" }}>—</span>
+                      )}
+                    </td>
                     <td>{book.title}</td>
                     <td>{book.author}</td>
                     <td>
@@ -432,11 +603,23 @@ const BooksManagement = () => {
                     </td>
                     <td>${book.price}</td>
                     <td>
+                      {typeof book.rating !== "undefined" &&
+                      book.rating !== null
+                        ? `${book.rating} (${book.rating_count ?? 0})`
+                        : "—"}
+                    </td>
+                    <td>
                       <div className="flex gap-4">
-                        <button className="action-btn edit">
+                        <button
+                          className="action-btn edit"
+                          onClick={() => handleEdit(book)}
+                        >
                           <Edit size={16} />
                         </button>
-                        <button className="action-btn delete">
+                        <button
+                          className="action-btn delete"
+                          onClick={() => handleDelete(book.isbn)}
+                        >
                           <Trash2 size={16} />
                         </button>
                       </div>

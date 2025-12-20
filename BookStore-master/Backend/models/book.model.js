@@ -1,5 +1,5 @@
-const db = require('../config/database');
-const Joi = require('joi');
+const db = require("../config/database");
+const Joi = require("joi");
 
 class Book {
   // Requirement 5: Search by ISBN, Title, Category, Author, Publisher
@@ -40,9 +40,17 @@ class Book {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     return db.execute(query, [
-      bookData.isbn, bookData.title, bookData.year, bookData.stock,
-      bookData.threshold, bookData.category, bookData.price, bookData.publisher_id,
-      bookData.avatar || null, bookData.rating || null, bookData.rating_count || null
+      bookData.isbn,
+      bookData.title,
+      bookData.year,
+      bookData.stock,
+      bookData.threshold,
+      bookData.category,
+      bookData.price,
+      bookData.publisher_id,
+      bookData.avatar || null,
+      bookData.rating || null,
+      bookData.rating_count || null,
     ]);
   }
 
@@ -57,22 +65,37 @@ class Book {
     const query = `UPDATE BOOK SET stock_quantity = ? WHERE ISBN = ?`;
     return db.execute(query, [quantity, isbn]);
   }
+
+  // Delete a book (and rely on controller to remove author links first)
+  static async delete(isbn) {
+    const query = `DELETE FROM BOOK WHERE ISBN = ?`;
+    return db.execute(query, [isbn]);
+  }
 }
 
 // Joi Validation Schema
 const bookSchema = Joi.object({
   isbn: Joi.string().length(13).required(),
   title: Joi.string().min(1).max(255).required(),
-  year: Joi.number().integer().min(1900).max(new Date().getFullYear()).required(),
+  year: Joi.number()
+    .integer()
+    .min(1900)
+    .max(new Date().getFullYear())
+    .required(),
   stock: Joi.number().integer().min(0).required(),
   threshold: Joi.number().integer().min(0).required(),
-  category: Joi.string().valid('Science', 'Art', 'Religion', 'History', 'Geography').required(),
+  category: Joi.string()
+    .valid("Science", "Art", "Religion", "History", "Geography")
+    .required(),
   price: Joi.number().precision(2).min(0.01).required(),
   publisher_id: Joi.number().integer().min(1).required(),
-  author_ids: Joi.array().items(Joi.number().integer().min(1)).min(1).required(), // For linking authors
-  avatar: Joi.string().uri().max(500).optional().allow(null, ''), // Book cover image URL
+  author_ids: Joi.array()
+    .items(Joi.number().integer().min(1))
+    .min(1)
+    .required(), // For linking authors
+  avatar: Joi.string().uri().max(255).optional().allow(null, ""), // Book cover image URL (max 255 to match DB column)
   rating: Joi.number().precision(1).min(0).max(5).optional().allow(null), // Book rating (0-5)
-  rating_count: Joi.number().integer().min(0).optional().allow(null) // Number of ratings
+  rating_count: Joi.number().integer().min(0).optional().allow(null), // Number of ratings
 });
 
 module.exports = { Book, bookSchema };

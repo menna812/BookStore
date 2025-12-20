@@ -7,6 +7,9 @@ router.get("/search", bookController.searchBooks); // Public access (Req 5)
 router.get("/top-rated", bookController.getTopRatedBooks); // Public access - Best Picks
 // Only a logged-in user with ADMIN role can add a new book.
 router.post("/", [verifyToken, isAdmin], bookController.addBook); // Admin access (Req 1)
+// Admin can modify general book details or stock
 router.put("/:isbn", [verifyToken, isAdmin], bookController.modifyBook); // Admin access (Req 2)
+// Admin can delete a book
+router.delete("/:isbn", [verifyToken, isAdmin], bookController.deleteBook); // Admin access (Req 3)
 
 module.exports = router;
