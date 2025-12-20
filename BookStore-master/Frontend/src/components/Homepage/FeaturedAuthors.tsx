@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import '../../styles/homepage.css';
 
@@ -9,6 +10,7 @@ interface Author {
 }
 
 export const FeaturedAuthors: React.FC = () => {
+  const navigate = useNavigate();
   const [scrollPosition, setScrollPosition] = useState(0);
   const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +39,10 @@ export const FeaturedAuthors: React.FC = () => {
 
     fetchFeaturedAuthors();
   }, []);
+
+  const handleAuthorClick = (authorName: string) => {
+    navigate(`/author/books?author=${encodeURIComponent(authorName)}`);
+  };
 
   const scrollLeft = () => {
     const container = document.getElementById('authors-container');
@@ -72,7 +78,12 @@ export const FeaturedAuthors: React.FC = () => {
 
             <div className="authors-carousel" id="authors-container">
               {authors.map((author) => (
-                <div key={author.author_id} className="author-item">
+                <div
+                  key={author.author_id}
+                  className="author-item"
+                  onClick={() => handleAuthorClick(author.author_name)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="author-image-wrapper">
                     <img
                       src={author.avatar}

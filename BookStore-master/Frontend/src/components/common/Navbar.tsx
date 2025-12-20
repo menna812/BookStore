@@ -38,7 +38,7 @@ export const Header: React.FC = () => {
         <nav className="header-nav">
           <a href="/" className="nav-link">Home</a>
           <a href="/books" className="nav-link">Books</a>
-          <a href="/authors" className="nav-link">Authors</a>
+          <a href="/authors" className="nav-link" >Authors</a>
           <a href="/categories" className="nav-link">Categories</a>
           <a href="/about" className="nav-link">About</a>
           <a href="/contact" className="nav-link">Contact Us</a>

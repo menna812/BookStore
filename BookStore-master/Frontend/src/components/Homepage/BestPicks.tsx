@@ -69,7 +69,7 @@ export const BestPicks: React.FC = () => {
   return (
     <section className="best-picks-section">
       <div className="best-picks-container">
-        <h2 className="section-title">Our Best Picks</h2>
+        <h2 className="section-title ">Our Best Picks</h2>
 
         {loading && <p>Loading best picks...</p>}
         {error && <p className="error-message">Error: {error}</p>}
