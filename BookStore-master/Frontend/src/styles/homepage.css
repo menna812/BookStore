@@ -121,22 +121,42 @@ body {
 }
 
 .btn-primary {
-  background-color: #f97316;
+  background: linear-gradient(90deg, #fb923c 0%, #f97316 100%);
   color: white;
-  padding: 0.75rem 2rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
+  padding: 0.85rem 2.2rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s;
-  font-size: 1rem;
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.18);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  font-size: 1.03rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .btn-primary:hover {
-  background-color: #ea580c;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(249, 115, 22, 0.22);
+}
+
+.btn-secondary {
+  background-color: rgba(255, 255, 255, 0.95);
+  color: #374151;
+  padding: 0.75rem 1.8rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(255,255,255,0.5);
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  font-size: 0.98rem;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.14);
 }
 
 .btn-secondary {

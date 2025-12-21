@@ -27,6 +27,16 @@ const customerUpdateSchema = Joi.object({
   phone_no: Joi.string().max(20).allow(null, ""),
   shipping_address: Joi.string().max(500).allow(null, ""),
   password: Joi.string().min(8),
+  // Avatar: accept URLs (including data:) up to 255 chars to match the DB column.
+  // This mirrors book/admin validation which accepts image URLs or small data URIs.
+  avatar: Joi.string()
+    .uri()
+    .max(255)
+    .allow(null, "")
+    .messages({
+      "string.uri": "avatar must be a valid URL or data URI",
+      "string.max": "avatar is too long (max 255 chars)",
+    }),
 }).min(1);
 
 // --- Class Implementation ---
@@ -62,7 +72,7 @@ class Customer {
   /** Finds customer profile details by ID. */
   static async findById(id) {
     const query =
-      "SELECT customer_id, firstname, lastname, email, phone_no, shipping_address FROM CUSTOMER WHERE customer_id = ?";
+      "SELECT customer_id, firstname, lastname, email, phone_no, shipping_address, avatar FROM CUSTOMER WHERE customer_id = ?";
     const [rows] = await db.execute(query, [id]);
     return rows[0];
   }
