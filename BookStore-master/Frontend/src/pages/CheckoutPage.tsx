@@ -7,21 +7,45 @@ import CreditCardInput from "../components/checkout/CreditCardInput";
 import OrderSummary from "../components/checkout/OrderSummary";
 import SecurityBadges from "../components/checkout/SecurityBadges";
 import { useToast } from "../context/ToastContext";
-import { useCheckout } from "../context/CheckoutContext";
 import axios from "axios";
 import "../styles/checkout.css";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  
+  // Payment Info
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
   const [cardHolder, setCardHolder] = useState("");
+  
+  // Shipping Info State
+  const [shippingInfo, setShippingInfo] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    streetAddress: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    country: "US",
+  });
+  
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
-  const { showSuccess, showError, showInfo } = useToast();
+  const { showSuccess, showError } = useToast();
+
+  // Handle shipping info changes
+  const handleShippingChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setShippingInfo(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   const validateCard = () => {
     const cleanedCard = cardNumber.replace(/\s/g, "");
@@ -49,48 +73,84 @@ const CheckoutPage = () => {
     return true;
   };
 
-  const handleCheckout = async () => {
-  if (cartItems.length === 0) {
-    showError("Your cart is empty.");
-    return;
-  }
-
-  if (!validateCard()) return;
-
-  setIsProcessing(true);
-
-  try {
-    const token = localStorage.getItem("token"); // JWT from login
-    const response = await axios.post(
-      "/api/orders/checkout",
-      {
-        credit_card: cardNumber.replace(/\s/g, ""),
-        expiry_date: expiryDate,
-        // optionally include CVV or user info if backend needs
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    // Backend response (from your controller)
-    setOrderNumber(response.data.orderId || `ORD-${Date.now()}`);
-    setIsSuccess(true);
-    showSuccess(response.data.message || "Order placed successfully!");
-
-    // Clear cart after successful order
-    clearCart(); // or use your cart context's clearCart method
-
-  } catch (err: any) {
-    if (err.response?.data?.message) {
-      showError(err.response.data.message);
-    } else {
-      showError("Checkout failed. Please try again.");
+  const validateShippingInfo = () => {
+    if (!shippingInfo.firstName || !shippingInfo.lastName) {
+      showError("Please enter your full name.");
+      return false;
     }
-  } finally {
-    setIsProcessing(false);
-  }
-};
+    if (!shippingInfo.email) {
+      showError("Please enter your email address.");
+      return false;
+    }
+    if (!shippingInfo.phone) {
+      showError("Please enter your phone number.");
+      return false;
+    }
+    if (!shippingInfo.streetAddress) {
+      showError("Please enter your street address.");
+      return false;
+    }
+    if (!shippingInfo.city || !shippingInfo.state) {
+      showError("Please enter your city and state.");
+      return false;
+    }
+    if (!shippingInfo.zipCode) {
+      showError("Please enter your ZIP code.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleCheckout = async () => {
+    if (cartItems.length === 0) {
+      showError("Your cart is empty.");
+      return;
+    }
+
+    if (!validateCard()) return;
+    if (!validateShippingInfo()) return;
+
+    setIsProcessing(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+      
+      const response = await axios.post(
+        `${API_BASE_URL}/orders/checkout`,
+        {
+          credit_card: cardNumber.replace(/\s/g, ""),
+          expiry_date: expiryDate,
+          cvv: cvv,
+          card_holder: cardHolder,
+          shipping_info: shippingInfo,
+          // Optionally include cart items for backend validation
+          items: cartItems.map(item => ({
+            book_id: item.cart_id,
+            quantity: item.Buying_quantity,
+            price: item.sellingPrice,
+          })),
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setOrderNumber(response.data.orderId || `ORD-${Date.now()}`);
+      setIsSuccess(true);
+      showSuccess(response.data.message || "Order placed successfully!");
+      clearCart();
+
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        showError(err.response.data.message);
+      } else {
+        showError("Checkout failed. Please try again.");
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.sellingPrice * item.Buying_quantity, 0);
   const shipping = subtotal > 50 ? 0 : 5.99;
@@ -207,7 +267,7 @@ const CheckoutPage = () => {
               exit={{ opacity: 0 }}
               className="checkout-grid"
             >
-              {/* Left Column - Payment Details */}
+              {/* Left Column - Payment & Shipping Details */}
               <div>
                 {/* Payment Information */}
                 <motion.div
@@ -251,6 +311,9 @@ const CheckoutPage = () => {
                       <label className="form-label required">First Name</label>
                       <input
                         type="text"
+                        name="firstName"
+                        value={shippingInfo.firstName}
+                        onChange={handleShippingChange}
                         className="form-input"
                         placeholder="John"
                       />
@@ -259,6 +322,9 @@ const CheckoutPage = () => {
                       <label className="form-label required">Last Name</label>
                       <input
                         type="text"
+                        name="lastName"
+                        value={shippingInfo.lastName}
+                        onChange={handleShippingChange}
                         className="form-input"
                         placeholder="Doe"
                       />
@@ -269,6 +335,9 @@ const CheckoutPage = () => {
                     <label className="form-label required">Email Address</label>
                     <input
                       type="email"
+                      name="email"
+                      value={shippingInfo.email}
+                      onChange={handleShippingChange}
                       className="form-input"
                       placeholder="john.doe@example.com"
                     />
@@ -278,6 +347,9 @@ const CheckoutPage = () => {
                     <label className="form-label required">Phone Number</label>
                     <input
                       type="tel"
+                      name="phone"
+                      value={shippingInfo.phone}
+                      onChange={handleShippingChange}
                       className="form-input"
                       placeholder="+1 (555) 000-0000"
                     />
@@ -287,6 +359,9 @@ const CheckoutPage = () => {
                     <label className="form-label required">Street Address</label>
                     <input
                       type="text"
+                      name="streetAddress"
+                      value={shippingInfo.streetAddress}
+                      onChange={handleShippingChange}
                       className="form-input"
                       placeholder="123 Main Street"
                     />
@@ -297,17 +372,26 @@ const CheckoutPage = () => {
                       <label className="form-label required">City</label>
                       <input
                         type="text"
+                        name="city"
+                        value={shippingInfo.city}
+                        onChange={handleShippingChange}
                         className="form-input"
                         placeholder="New York"
                       />
                     </div>
                     <div className="form-group">
                       <label className="form-label required">State</label>
-                      <select className="form-select">
+                      <select 
+                        name="state"
+                        value={shippingInfo.state}
+                        onChange={handleShippingChange}
+                        className="form-select"
+                      >
                         <option value="">Select State</option>
                         <option value="NY">New York</option>
                         <option value="CA">California</option>
                         <option value="TX">Texas</option>
+                        {/* Add more states as needed */}
                       </select>
                     </div>
                   </div>
@@ -317,13 +401,21 @@ const CheckoutPage = () => {
                       <label className="form-label required">ZIP Code</label>
                       <input
                         type="text"
+                        name="zipCode"
+                        value={shippingInfo.zipCode}
+                        onChange={handleShippingChange}
                         className="form-input"
                         placeholder="10001"
                       />
                     </div>
                     <div className="form-group">
                       <label className="form-label required">Country</label>
-                      <select className="form-select">
+                      <select 
+                        name="country"
+                        value={shippingInfo.country}
+                        onChange={handleShippingChange}
+                        className="form-select"
+                      >
                         <option value="US">United States</option>
                         <option value="CA">Canada</option>
                         <option value="UK">United Kingdom</option>
@@ -332,6 +424,7 @@ const CheckoutPage = () => {
                   </div>
                 </motion.div>
               </div>
+              
               {/* Right Column - Order Summary */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -339,33 +432,33 @@ const CheckoutPage = () => {
                 transition={{ delay: 0.3 }}
               >
                 <div className="order-summary-section">
-                <OrderSummary
-                  items={cartItems}
-                  onUpdateQuantity={updateQuantity}
-                  onRemoveItem={removeFromCart}
-                />
+                  <OrderSummary
+                    items={cartItems}
+                    onUpdateQuantity={updateQuantity}
+                    onRemoveItem={removeFromCart}
+                  />
 
-                {/* Checkout Button */}
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleCheckout}
-                  disabled={isProcessing || cartItems.length === 0}
-                  className="btn-primary-checkout"
-                >
-                  {isProcessing ? (
-                    <>
-                      <div className="spinner" />
-                      Processing Payment...
-                    </>
-                  ) : (
-                    <>
-                      Complete Purchase - ${total.toFixed(2)}
-                    </>
-                  )}
-                </motion.button>
+                  {/* Checkout Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleCheckout}
+                    disabled={isProcessing || cartItems.length === 0}
+                    className="btn-primary-checkout"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="spinner" />
+                        Processing Payment...
+                      </>
+                    ) : (
+                      <>
+                        Complete Purchase - ${total.toFixed(2)}
+                      </>
+                    )}
+                  </motion.button>
 
-                <SecurityBadges />
+                  <SecurityBadges />
                 </div>
               </motion.div>
             </motion.div>

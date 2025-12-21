@@ -1,7 +1,7 @@
 import axios from "axios";
+import { User } from "../types/auth";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-
 
 export interface AuthResponse {
   token: string;
@@ -15,6 +15,21 @@ export interface LoginData {
   password: string;
 }
 
+// Helper function to get token
+const getToken = (): string | null => {
+  return localStorage.getItem("token");
+};
+
+// Helper function to get stored user
+const getStoredUser = (): User | null => {
+  try {
+    const userStr = localStorage.getItem("user");
+    return userStr ? JSON.parse(userStr) : null;
+  } catch {
+    return null;
+  }
+};
+
 export const authService = {
   /**
    * Customer login
@@ -25,19 +40,32 @@ export const authService = {
         ? { email: emailOrData, password: password! }
         : emailOrData;
       const res = await axios.post(`${API_URL}/auth/login`, data);
-      return { ...res.data, user: res.data };
+      
+      // Store token
+      localStorage.setItem("token", res.data.token);
+      
+      // Store user data
+      const userData: User = {
+        id: res.data.userId || res.data.user?.id,
+        email: data.email,
+        fullName: res.data.user?.fullName || 
+                 `${res.data.user?.firstname || ''} ${res.data.user?.lastname || ''}`.trim(),
+        role: res.data.role,
+        firstname: res.data.user?.firstname,
+        lastname: res.data.user?.lastname,
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      return { ...res.data, user: userData };
     } catch (err: any) {
       if (err.response) {
-        // Server responded with error
         const message = err.response.data.message || "Login failed";
         throw new Error(message);
       } else if (err.request) {
-        // Request made but no response
         throw new Error(
           "Cannot connect to server. Please check your connection."
         );
       } else {
-        // Something else happened
         throw new Error("An unexpected error occurred. Please try again.");
       }
     }
@@ -49,19 +77,32 @@ export const authService = {
   adminLogin: async (data: LoginData): Promise<AuthResponse> => {
     try {
       const res = await axios.post(`${API_URL}/auth/admin/login`, data);
-      return res.data;
+      
+      // Store token
+      localStorage.setItem("token", res.data.token);
+      
+      // Store user data
+      const userData: User = {
+        id: res.data.userId || res.data.user?.id,
+        email: data.email,
+        fullName: res.data.user?.fullName || 
+                 `${res.data.user?.firstname || ''} ${res.data.user?.lastname || ''}`.trim(),
+        role: res.data.role,
+        firstname: res.data.user?.firstname,
+        lastname: res.data.user?.lastname,
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      return { ...res.data, user: userData };
     } catch (err: any) {
       if (err.response) {
-        // Server responded with error
         const message = err.response.data.message || "Admin login failed";
         throw new Error(message);
       } else if (err.request) {
-        // Request made but no response
         throw new Error(
           "Cannot connect to server. Please check your connection."
         );
       } else {
-        // Something else happened
         throw new Error("An unexpected error occurred. Please try again.");
       }
     }
@@ -82,8 +123,17 @@ export const authService = {
           },
         }
       );
+      
+      // Clear stored data
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      
       return res.data;
     } catch (err: any) {
+      // Clear stored data even if logout fails
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      
       if (err.response) {
         const message = err.response.data.message || "Logout failed";
         throw new Error(message);
@@ -98,20 +148,14 @@ export const authService = {
   },
 
   /**
-   * Get current user
+   * Get current user from localStorage
    */
-  getCurrentUser: async (): Promise<any> => {
-    const token = localStorage.getItem("token");
+  getCurrentUser: async (): Promise<User | null> => {
+    const token = getToken();
     if (!token) return null;
-
-    try {
-      const res = await axios.get(`${API_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      return res.data;
-    } catch (err) {
-      return null;
-    }
+    
+    // Get user from localStorage (stored during login)
+    return getStoredUser();
   },
 
   /**
@@ -128,7 +172,22 @@ export const authService = {
         email,
         password,
       });
-      return { ...res.data, user: res.data };
+      
+      // Store token
+      localStorage.setItem("token", res.data.token);
+      
+      // Store user data
+      const userData: User = {
+        id: res.data.userId || res.data.user?.id,
+        email: email,
+        fullName: fullName,
+        role: res.data.role,
+        firstname: firstname,
+        lastname: lastname,
+      };
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      return { ...res.data, user: userData };
     } catch (err: any) {
       if (err.response) {
         const message = err.response.data.message || "Signup failed";

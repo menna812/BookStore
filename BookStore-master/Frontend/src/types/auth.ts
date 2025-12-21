@@ -4,6 +4,8 @@ export interface User {
   email: string;
   role?: "customer" | "admin" | "publisher";
   createdAt?: string;
+  firstname?: string;  // Add this
+  lastname?: string; 
 }
 
 export interface LoginCredentials {
@@ -20,11 +22,17 @@ export interface SignupData {
 }
 
 export interface AuthResponse {
-  user: User;
   token: string;
+  role: "customer" | "admin";
+  userId: number;
+  user?: User;
 }
 
 export interface AuthError {
   message: string;
   field?: string;
+}
+export interface LoginData {
+  email: string;
+  password: string;
 }
