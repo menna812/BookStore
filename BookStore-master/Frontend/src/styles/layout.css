@@ -18,6 +18,7 @@
   justify-content: space-between;
   align-items: center;
   height: 4rem;
+  position: relative;
 }
 
 /* Logo Section */
@@ -26,7 +27,6 @@
   align-items: center;
   gap: 0.75rem;
 }
-
 
 .logo-icon {
   min-width: 80px;
@@ -64,11 +64,10 @@
   font-weight: 700;
   margin-bottom: 8px;
   text-align: center;
-  background: linear-gradient(135deg, #006400, #ff6b35); /* dark green → orange */
+  background: linear-gradient(135deg, #006400, #ff6b35);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-
 
 .logo-subtitle {
   font-size: 0.75rem;
@@ -77,11 +76,30 @@
   line-height: 1;
 }
 
-/* Navigation */
+/* Collapsible / Expanding Search */
+.header-search {
+  display: flex;
+  align-items: center;
+  justify-content: right;
+  flex: 1;
+  gap: 0.5rem;
+}
+
+/* Navigation - WITH HIDE/SHOW ANIMATION */
 .header-nav {
   display: none;
   align-items: center;
-  gap: 2rem;
+  gap: 1rem;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  opacity: 1;
+  visibility: visible;
+  padding-left: 50px;
+}
+
+.header-nav.nav-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .nav-link {
@@ -89,17 +107,27 @@
   font-weight: 500;
   text-decoration: none;
   transition: color 0.3s;
+  margin-right: 1rem;
 }
 
 .nav-link:hover {
   color: #16a34a;
 }
 
-/* Header Actions */
+/* Header Actions - WITH HIDE/SHOW ANIMATION */
 .header-actions {
   display: flex;
   align-items: center;
   gap: 1rem;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  opacity: 1;
+  visibility: visible;
+}
+
+.header-actions.actions-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .header-icon-btn {
@@ -139,11 +167,11 @@
   justify-content: center;
 }
 
+/* Mobile Menu */
 .mobile-menu-btn {
   display: flex;
 }
 
-/* Mobile Navigation */
 .mobile-nav {
   display: flex;
   flex-direction: column;
@@ -164,6 +192,20 @@
   color: #16a34a;
 }
 
+.mobile-nav-divider {
+  height: 1px;
+  background-color: #e5e7eb;
+  margin: 0.5rem 0;
+}
+
+.mobile-nav-logout {
+  background: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+
 /* Desktop Navigation - Show on larger screens */
 @media (min-width: 768px) {
   .header-nav {
@@ -178,6 +220,7 @@
     display: block;
   }
 }
+
 /* Sign Up Button */
 .btn-signup {
   background-color: #f97316;
@@ -211,41 +254,6 @@
   .user-greeting {
     display: block;
   }
-}
-
-/* Mobile Nav Divider */
-.mobile-nav-divider {
-  height: 1px;
-  background-color: #e5e7eb;
-  margin: 0.5rem 0;
-}
-
-/* Mobile Nav Sign Up */
-.mobile-nav-signup {
-  background-color: #f97316;
-  color: white;
-  border-radius: 0.5rem;
-  margin-top: 0.5rem;
-  text-align: center;
-}
-
-.mobile-nav-signup:hover {
-  background-color: #ea580c;
-  color: white;
-}
-
-/* Mobile Nav Logout */
-.mobile-nav-logout {
-  background: none;
-  border: none;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  color: #dc2626;
-}
-
-.mobile-nav-logout:hover {
-  color: #b91c1c;
 }
 
 /* ============================================

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useCart } from '../context/CartContext';
 import '../styles/allbooks.css';
 
 interface Book {
@@ -13,8 +14,13 @@ interface Book {
     Category: string;
 }
 
-export const AllBooksPage: React.FC = () => {
+interface AllBooksPageProps {
+    onCartOpen?: () => void;
+}
+
+export const AllBooksPage: React.FC<AllBooksPageProps> = ({ onCartOpen }) => {
     const location = useLocation();
+    const { addToCart } = useCart();
     const [books, setBooks] = useState<Book[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
@@ -41,6 +47,22 @@ export const AllBooksPage: React.FC = () => {
 
         fetchAllBooks();
     }, [location.search]);
+
+    const handleAddToCart = (book: Book) => {
+        addToCart({
+            ISBN: book.ISBN,
+            Title: book.Title,
+            sellingPrice: Number(book.sellingPrice),
+            Buying_quantity: 1,
+            avatar: book.avatar,
+            author: book.authors,
+        });
+
+        // Open cart sidebar if function exists
+        if (onCartOpen) {
+            onCartOpen();
+        }
+    };
 
     const renderStars = (rating: number) => {
         const stars = [];
@@ -78,11 +100,6 @@ export const AllBooksPage: React.FC = () => {
         }
 
         return stars;
-    };
-
-    const getRandomDiscount = () => {
-        const discounts = [4, 10, 13, 15, 17, 20];
-        return discounts[Math.floor(Math.random() * discounts.length)];
     };
 
     const isHot = (rating: number) => rating >= 4.5;
@@ -128,7 +145,14 @@ export const AllBooksPage: React.FC = () => {
                                         className="book-item-image"
                                     />
                                     <div className="hover-overlay">
-                                        <button className="add-to-cart-btn">
+                                        <button 
+                                            className="add-to-cart-btn"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleAddToCart(book);
+                                            }}
+                                        >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                 <circle cx="9" cy="21" r="1" />
                                                 <circle cx="20" cy="21" r="1" />

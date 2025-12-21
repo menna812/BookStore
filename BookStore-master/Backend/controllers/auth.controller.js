@@ -79,3 +79,27 @@ exports.customerLogin = async (req, res, next) => {
 exports.adminLogin = async (req, res, next) => {
   await handleLogin(req, res, next, Admin, adminLoginSchema, "admin");
 };
+exports.getCurrentUser = async (req, res, next) => {
+  try {
+    // `verifyToken` middleware should set req.userId and req.role
+    const { userId, role } = req;
+
+    let user;
+    if (role === "customer") {
+      user = await Customer.findById(userId);
+    } else if (role === "admin") {
+      user = await Admin.findById(userId);
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Exclude sensitive fields like password
+    const { password, ...safeUser } = user;
+
+    res.json(safeUser);
+  } catch (err) {
+    next(err);
+  }
+};

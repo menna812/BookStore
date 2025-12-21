@@ -22,4 +22,7 @@ router.post('/logout', verifyToken, async (req, res, next) => {
     }
 });
 
+// Get current user
+router.get('/me', verifyToken, authController.getCurrentUser);
+
 module.exports = router;

@@ -1,660 +1,614 @@
 /* ===============================
-   Alexandria Bookstore Design System
-   (Tailwind-free version)
+   CHECKOUT PAGE - MATCHING HOMEPAGE THEME
+   Based on Orange (#f97316) color scheme
 ================================ */
 
 /* ===============================
-   1. FONT IMPORTS
+   1. CHECKOUT PAGE CONTAINER
 ================================ */
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap");
-
-/* ===============================
-   2. CSS VARIABLES (Color System)
-================================ */
-:root {
-  /* HSL Values (matching your config) */
-  --hue-background: 222;
-  --hue-foreground: 45;
-
-  /* Base Colors */
-  --background: hsl(var(--hue-background) 47% 6%);
-  --foreground: hsl(var(--hue-foreground) 30% 92%);
-
-  --card: hsl(var(--hue-background) 45% 9%);
-  --card-foreground: hsl(var(--hue-foreground) 30% 92%);
-
-  --popover: hsl(var(--hue-background) 47% 8%);
-  --popover-foreground: hsl(var(--hue-foreground) 30% 92%);
-
-  --primary: hsl(43 74% 55%);
-  --primary-foreground: hsl(var(--hue-background) 47% 6%);
-
-  --secondary: hsl(var(--hue-background) 35% 14%);
-  --secondary-foreground: hsl(var(--hue-foreground) 30% 92%);
-
-  --muted: hsl(var(--hue-background) 35% 14%);
-  --muted-foreground: hsl(220 15% 55%);
-
-  --accent: hsl(43 74% 55%);
-  --accent-foreground: hsl(var(--hue-background) 47% 6%);
-
-  --destructive: hsl(0 72% 51%);
-  --destructive-foreground: hsl(var(--hue-foreground) 30% 92%);
-
-  --border: hsl(var(--hue-background) 30% 18%);
-  --input: hsl(var(--hue-background) 30% 18%);
-  --ring: hsl(43 74% 55%);
-
-  /* Custom Colors */
-  --gold: hsl(43 74% 55%);
-  --gold-light: hsl(43 85% 70%);
-  --gold-dark: hsl(43 65% 42%);
-  --navy: hsl(var(--hue-background) 47% 6%);
-  --navy-light: hsl(var(--hue-background) 45% 12%);
-  --cream: hsl(var(--hue-foreground) 30% 92%);
-  --cream-muted: hsl(var(--hue-foreground) 20% 75%);
-
-  /* Sidebar Colors */
-  --sidebar-background: hsl(var(--hue-background) 47% 8%);
-  --sidebar-foreground: hsl(var(--hue-foreground) 30% 92%);
-  --sidebar-primary: hsl(43 74% 55%);
-  --sidebar-primary-foreground: hsl(var(--hue-background) 47% 6%);
-  --sidebar-accent: hsl(var(--hue-background) 35% 14%);
-  --sidebar-accent-foreground: hsl(var(--hue-foreground) 30% 92%);
-  --sidebar-border: hsl(var(--hue-background) 30% 18%);
-  --sidebar-ring: hsl(43 74% 55%);
-
-  /* Border Radius */
-  --radius: 0.75rem;
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-
-  /* Gradients */
-  --gradient-gold: linear-gradient(135deg, var(--gold), var(--gold-light));
-  --gradient-card: linear-gradient(
-    180deg,
-    hsl(var(--hue-background) 45% 11%),
-    hsl(var(--hue-background) 47% 7%)
-  );
-  --gradient-hero: radial-gradient(
-    ellipse at top,
-    var(--navy-light),
-    var(--navy)
-  );
-  --gradient-glow: radial-gradient(
-    circle,
-    hsl(43 74% 55% / 0.15),
-    transparent 70%
-  );
-
-  /* Shadows */
-  --shadow-gold: 0 4px 30px hsl(43 74% 55% / 0.2);
-  --shadow-card: 0 10px 40px hsl(var(--hue-background) 47% 2% / 0.5);
-  --shadow-input: inset 0 2px 4px hsl(var(--hue-background) 47% 2% / 0.3);
-}
-
-/* ===============================
-   3. RESET & BASE STYLES
-================================ */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  border-color: var(--border);
-}
-
-body {
-  font-family: "DM Sans", sans-serif;
-  background: var(--background);
-  color: var(--foreground);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: antialiased;
+.checkout-page {
   min-height: 100vh;
-  line-height: 1.5;
+  background-color: #f9fafb;
+  padding: 2rem 1rem;
 }
 
-/* ===============================
-   4. TYPOGRAPHY
-================================ */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-family: "Playfair Display", serif;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-h1 {
-  font-size: 3rem;
-}
-h2 {
-  font-size: 2.25rem;
-}
-h3 {
-  font-size: 1.875rem;
-}
-h4 {
-  font-size: 1.5rem;
-}
-h5 {
-  font-size: 1.25rem;
-}
-h6 {
-  font-size: 1.125rem;
-}
-
-p {
-  font-size: 1rem;
-  color: var(--foreground);
-}
-
-small {
-  font-size: 0.875rem;
-  color: var(--muted-foreground);
-}
-
-/* ===============================
-   5. UTILITY CLASSES
-================================ */
-/* Text Colors */
-.text-cream {
-  color: var(--cream);
-}
-.text-cream-muted {
-  color: var(--cream-muted);
-}
-.text-gold {
-  color: var(--gold);
-}
-.text-destructive {
-  color: var(--destructive);
-}
-
-.text-gradient {
-  background: var(--gradient-gold);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* Backgrounds */
-.bg-background {
-  background: var(--background);
-}
-.bg-card {
-  background: var(--card);
-}
-.bg-secondary {
-  background: var(--secondary);
-}
-.bg-primary {
-  background: var(--primary);
-  color: var(--primary-foreground);
-}
-.bg-destructive {
-  background: var(--destructive);
-  color: var(--destructive-foreground);
-}
-.bg-gold {
-  background: var(--gold);
-}
-.bg-gold-gradient {
-  background: var(--gradient-gold);
-}
-.bg-navylight {
-  background: var(--navy-light);
-}
-
-/* Borders */
-.border-border {
-  border: 1px solid var(--border);
-}
-.border-gold {
-  border: 1px solid var(--gold);
-}
-
-/* Border Radius */
-.rounded {
-  border-radius: var(--radius-sm);
-}
-.rounded-md {
-  border-radius: var(--radius-md);
-}
-.rounded-lg {
-  border-radius: var(--radius-lg);
-}
-.rounded-xl {
-  border-radius: var(--radius);
-}
-
-/* Shadows */
-.shadow-gold {
-  box-shadow: var(--shadow-gold);
-}
-.shadow-card {
-  box-shadow: var(--shadow-card);
-}
-
-/* Glass Effect */
-.glass-card {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--hue-background) 45% 11% / 0.9),
-    hsl(var(--hue-background) 47% 8% / 0.95)
-  );
-  backdrop-filter: blur(24px);
-  border: 1px solid hsl(var(--hue-background) 30% 20% / 0.5);
-  border-radius: var(--radius);
-}
-
-/* ===============================
-   6. LAYOUT & CONTAINER
-================================ */
-.container {
-  width: 100%;
-  max-width: 1400px;
+.checkout-container {
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 1rem;
+}
+.arrow-icon {
+  margin-top: auto; /* move down */
+  padding-top: 8px;
+  width: 20px;
 }
 
 /* ===============================
-   7. FORM ELEMENTS
+   2. PAGE HEADER
 ================================ */
-input,
-textarea,
-select {
-  font-family: "DM Sans", sans-serif;
-  background: var(--input);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  color: var(--foreground);
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  width: 100%;
-  transition: all 0.2s;
+.checkout-header {
+  text-align: left;
+  margin-bottom: 3rem;
+  padding-top: 1rem;
 }
 
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--ring);
-  box-shadow: 0 0 0 3px hsl(43 74% 55% / 0.15), var(--shadow-input);
-}
-
-input::placeholder {
-  color: var(--muted-foreground);
-}
-
-label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--foreground);
+.checkout-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #f97316;
   margin-bottom: 0.5rem;
+  letter-spacing: 0.02em;
 }
 
-/* ===============================
-   8. BUTTONS
-================================ */
-.btn {
-  font-family: "DM Sans", sans-serif;
-  font-weight: 500;
-  border: none;
-  border-radius: var(--radius-md);
-  padding: 0.75rem 1.5rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--gradient-gold);
-  color: var(--primary-foreground);
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-gold);
-}
-
-.btn-secondary {
-  background: var(--secondary);
-  color: var(--secondary-foreground);
-  border: 1px solid var(--border);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: hsl(var(--hue-background) 35% 16%);
-}
-
-.btn-destructive {
-  background: var(--destructive);
-  color: var(--destructive-foreground);
-}
-
-.btn-destructive:hover:not(:disabled) {
-  background: hsl(0 72% 45%);
-}
-
-.btn-outline {
-  background: transparent;
-  color: var(--foreground);
-  border: 1px solid var(--border);
-}
-
-.btn-outline:hover:not(:disabled) {
-  background: var(--secondary);
-  border-color: var(--ring);
-}
-
-.btn-lg {
-  padding: 1rem 2rem;
+.checkout-subtitle {
   font-size: 1rem;
-}
-
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 400;
 }
 
 /* ===============================
-   9. ANIMATIONS
+   3. LAYOUT GRID
 ================================ */
-@keyframes accordion-down {
-  from {
-    height: 0;
-  }
-  to {
-    height: var(--radix-accordion-content-height);
-  }
-}
-
-@keyframes accordion-up {
-  from {
-    height: var(--radix-accordion-content-height);
-  }
-  to {
-    height: 0;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-@keyframes pulse-gold {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-}
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
-/* Animation Classes */
-.animate-accordion-down {
-  animation: accordion-down 0.2s ease-out;
-}
-
-.animate-accordion-up {
-  animation: accordion-up 0.2s ease-out;
-}
-
-.animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    transparent 25%,
-    hsl(43 74% 55% / 0.1) 50%,
-    transparent 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 2s linear infinite;
-}
-
-.animate-pulse-gold {
-  animation: pulse-gold 2s ease-in-out infinite;
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-/* ===============================
-   10. COMPONENTS (Checkout Specific)
-================================ */
-/* Credit Card Preview */
-.credit-card-preview {
-  background: var(--gradient-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  position: relative;
-  overflow: hidden;
-}
-
-.credit-card-preview::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--gradient-gold);
-}
-
-/* Order Summary Item */
-.order-item {
-  background: var(--secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 1rem;
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-  transition: border-color 0.2s;
-}
-
-.order-item:hover {
-  border-color: var(--gold);
-}
-
-/* Quantity Controls */
-.quantity-control {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: var(--navy-light);
-  border-radius: var(--radius-sm);
-  padding: 0.25rem;
-}
-
-.quantity-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  width: 1.75rem;
-  height: 1.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--foreground);
-  cursor: pointer;
-}
-
-.quantity-btn:hover {
-  border-color: var(--gold);
-  color: var(--gold);
-}
-
-/* Security Badges */
-.security-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: var(--secondary);
-  border: 1px solid var(--border);
-  border-radius: 9999px;
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--cream-muted);
-}
-
-/* ===============================
-   11. LAYOUT GRID
-================================ */
-.grid-2 {
+.checkout-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 450px;
   gap: 2rem;
+  align-items: start;
 }
 
 @media (max-width: 1024px) {
-  .grid-2 {
+  .checkout-grid {
     grid-template-columns: 1fr;
   }
 }
 
 /* ===============================
-   12. SPACING UTILITIES
+   4. CHECKOUT FORM SECTION
 ================================ */
-.p-4 {
-  padding: 1rem;
-}
-.p-6 {
-  padding: 1.5rem;
-}
-.p-8 {
+.checkout-form-section {
+  background: white;
+  border-radius: 0.75rem;
   padding: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
 }
 
-.m-4 {
-  margin: 1rem;
-}
-.mt-4 {
-  margin-top: 1rem;
-}
-.mb-4 {
-  margin-bottom: 1rem;
-}
-.ml-4 {
-  margin-left: 1rem;
-}
-.mr-4 {
-  margin-right: 1rem;
+.form-section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.gap-4 {
+.form-section-title svg {
+  color: #f97316;
+}
+
+.form-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 2rem 0;
+}
+
+/* ===============================
+   5. FORM INPUTS
+================================ */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+.form-label.required::after {
+  content: " *";
+  color: #ef4444;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #111827;
+  background-color: white;
+  transition: all 0.3s ease;
+  font-family: "DM Sans", sans-serif;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+/* Two Column Form */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
 }
-.gap-6 {
-  gap: 1.5rem;
-}
-.gap-8 {
-  gap: 2rem;
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* ===============================
-   13. FLEX UTILITIES
-================================ */
-.flex {
-  display: flex;
-}
-.flex-col {
-  flex-direction: column;
-}
-.items-center {
-  align-items: center;
-}
-.justify-center {
-  justify-content: center;
-}
-.justify-between {
-  justify-content: space-between;
-}
-.flex-wrap {
-  flex-wrap: wrap;
+/* Three Column Form (for card details) */
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1rem;
 }
 
-/* ===============================
-   14. VISIBILITY & DISPLAY
-================================ */
-.hidden {
-  display: none;
-}
-.block {
-  display: block;
-}
-.inline-block {
-  display: inline-block;
-}
-
-@media (max-width: 768px) {
-  .hidden-mobile {
-    display: none;
+@media (max-width: 640px) {
+  .form-row-3 {
+    grid-template-columns: 1fr;
   }
 }
 
 /* ===============================
-   15. PAGE SPECIFIC
+   6. FORM INPUTS (REMOVED CREDIT CARD PREVIEW)
 ================================ */
-/* Checkout Page */
-.checkout-page {
-  min-height: 100vh;
-  background: var(--gradient-hero);
+.order-summary-section {
+  background: white;
+  border-radius: 0.75rem;
   padding: 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 2rem;
 }
 
-/* Success State */
-.success-state {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 2.5rem;
+.order-summary-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1.5rem;
+}
+
+/* ===============================
+   8. ORDER ITEMS LIST
+================================ */
+.order-items-list {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 1.5rem;
+  padding-right: 0.5rem;
+}
+
+.order-items-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.order-items-list::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 3px;
+}
+
+.order-items-list::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.order-items-list::-webkit-scrollbar-thumb:hover {
+  background: #f97316;
+}
+
+.order-item {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.order-item:hover {
+  background: #f3f4f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.order-item-image {
+  width: 60px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 0.375rem;
+  flex-shrink: 0;
+}
+
+.order-item-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.order-item-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.order-item-author {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.order-item-quantity {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: auto;
+}
+
+.order-item-price {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #f97316;
+  align-self: flex-start;
+}
+
+/* ===============================
+   9. ORDER SUMMARY TOTALS
+================================ */
+.order-summary-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 1.5rem 0;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.summary-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.summary-value {
+  color: #111827;
+  font-weight: 600;
+}
+
+.summary-value.free {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.shipping-note {
+  font-size: 0.75rem;
+  color: #f97316;
+  margin-top: -0.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 2px solid #e5e7eb;
+}
+
+.total-label {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.total-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f97316;
+}
+
+/* ===============================
+   10. BUTTONS
+================================ */
+.btn-primary-checkout {
+  width: 100%;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+  margin-top: 1.5rem;
+}
+
+/* .btn-primary-checkout:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.4);
+} */
+
+.btn-primary-checkout:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary-checkout {
+  width: 100%;
+  background: white;
+  color: #374151;
+  border: 2px solid #e5e7eb;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.btn-secondary-checkout:hover {
+  border-color: #f97316;
+  color: #f97316;
+  background: #fff7ed;
+}
+
+/* ===============================
+   11. SECURITY BADGES
+================================ */
+.security-badges {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.security-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.security-badge svg {
+  color: #10b981;
+}
+
+/* ===============================
+   12. SUCCESS STATE
+================================ */
+.success-container {
+  max-width: 600px;
+  margin: 4rem auto;
   text-align: center;
-  max-width: 32rem;
-  margin: 0 auto;
+}
+
+.success-card {
+  background: white;
+  border-radius: 1rem;
+  padding: 3rem 2rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
 .success-icon {
-  width: 5rem;
-  height: 5rem;
-  background: var(--gradient-gold);
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
-  color: var(--primary-foreground);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+}
+
+.success-icon svg {
+  color: white;
+  width: 40px;
+  height: 40px;
+}
+
+.success-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.75rem;
+}
+
+.success-message {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.success-order-number {
+  background: #f9fafb;
+  border: 2px dashed #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.success-order-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.success-order-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f97316;
+  font-family: "Courier New", monospace;
+}
+
+.success-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ===============================
+   13. EMPTY CART STATE
+================================ */
+.empty-cart-container {
+  max-width: 600px;
+  margin: 4rem auto;
+  text-align: center;
+}
+
+.empty-cart-icon {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 2rem;
+  opacity: 0.5;
+}
+
+.empty-cart-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.75rem;
+}
+
+.empty-cart-message {
+  font-size: 1rem;
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+
+/* ===============================
+   14. LOADING SPINNER
+================================ */
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: #f97316;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #fed7aa;
+  border-top-color: #f97316;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===============================
+   15. RESPONSIVE DESIGN
+================================ */
+@media (max-width: 768px) {
+  .checkout-page {
+    padding: 1rem 0.5rem;
+  }
+
+  .checkout-title {
+    font-size: 2rem;
+  }
+
+  .checkout-form-section,
+  .order-summary-section {
+    padding: 1.5rem;
+  }
+
+  .form-section-title {
+    font-size: 1.25rem;
+  }
+
+  .credit-card-preview {
+    padding: 1.5rem;
+    min-height: 180px;
+  }
+
+  .card-number {
+    font-size: 1.125rem;
+  }
+
+  .success-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .success-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .checkout-title {
+    font-size: 1.75rem;
+  }
+
+  .checkout-form-section,
+  .order-summary-section {
+    padding: 1rem;
+  }
+
+  .security-badges {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .success-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-primary-checkout,
+  .btn-secondary-checkout {
+    width: 100%;
+  }
+}
+.order-summary-section {
+  position: relative;
+  top: 1rem;
 }

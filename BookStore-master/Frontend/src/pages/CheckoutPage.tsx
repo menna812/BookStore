@@ -1,59 +1,37 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ShoppingCart, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ShoppingCart, CreditCard, CheckCircle2, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 import CreditCardInput from "../components/checkout/CreditCardInput";
-import OrderSummary, { CartItem } from "../components/checkout/OrderSummary";
+import OrderSummary from "../components/checkout/OrderSummary";
 import SecurityBadges from "../components/checkout/SecurityBadges";
-import { useToast } from "../context/ToastContext"; // Mock cart data
-const initialCartItems: CartItem[] = [
-  {
-    isbn: "978-0-13-468599-1",
-    title: "The Art of Computer Programming",
-    author: "Donald Knuth",
-    price: 89.99,
-    quantity: 1,
-  },
-  {
-    isbn: "978-0-201-63361-0",
-    title: "Design Patterns",
-    author: "Gang of Four",
-    price: 54.99,
-    quantity: 2,
-  },
-  {
-    isbn: "978-0-596-51774-8",
-    title: "JavaScript: The Good Parts",
-    author: "Douglas Crockford",
-    price: 29.99,
-    quantity: 1,
-  },
-];
+import { useToast } from "../context/ToastContext";
+import { useCheckout } from "../context/CheckoutContext";
+import axios from "axios";
+import "../styles/checkout.css";
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
+  const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
-  const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems);
+  const [cvv, setCvv] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("");
   const { showSuccess, showError, showInfo } = useToast();
-
-  const updateQuantity = (isbn: string, quantity: number) => {
-    setCartItems((items) =>
-      items.map((item) => (item.isbn === isbn ? { ...item, quantity } : item))
-    );
-  };
-
-  const removeItem = (isbn: string) => {
-    setCartItems((items) => items.filter((item) => item.isbn !== isbn));
-    showInfo("The book has been removed from your cart.");
-  };
 
   const validateCard = () => {
     const cleanedCard = cardNumber.replace(/\s/g, "");
     if (cleanedCard.length < 13 || cleanedCard.length > 19) {
       showError("Please enter a valid credit card number.");
+      return false;
+    }
+
+    if (!cardHolder.trim()) {
+      showError("Please enter the card holder name.");
       return false;
     }
 
@@ -63,63 +41,114 @@ const CheckoutPage = () => {
       return false;
     }
 
+    if (cvv.length < 3 || cvv.length > 4) {
+      showError("Please enter a valid CVV code.");
+      return false;
+    }
+
     return true;
   };
 
   const handleCheckout = async () => {
-    if (!validateCard()) return;
+  if (cartItems.length === 0) {
+    showError("Your cart is empty.");
+    return;
+  }
 
-    setIsProcessing(true);
+  if (!validateCard()) return;
 
-    // Simulate payment processing
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+  setIsProcessing(true);
 
-    setIsProcessing(false);
+  try {
+    const token = localStorage.getItem("token"); // JWT from login
+    const response = await axios.post(
+      "/api/orders/checkout",
+      {
+        credit_card: cardNumber.replace(/\s/g, ""),
+        expiry_date: expiryDate,
+        // optionally include CVV or user info if backend needs
+      },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    // Backend response (from your controller)
+    setOrderNumber(response.data.orderId || `ORD-${Date.now()}`);
     setIsSuccess(true);
-    showSuccess("Your order has been placed successfully.");
-  };
+    showSuccess(response.data.message || "Order placed successfully!");
 
-  const total = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-  const finalTotal = total + total * 0.08;
+    // Clear cart after successful order
+    clearCart(); // or use your cart context's clearCart method
+
+  } catch (err: any) {
+    if (err.response?.data?.message) {
+      showError(err.response.data.message);
+    } else {
+      showError("Checkout failed. Please try again.");
+    }
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
+  const subtotal = cartItems.reduce((sum, item) => sum + item.sellingPrice * item.Buying_quantity, 0);
+  const shipping = subtotal > 50 ? 0 : 5.99;
+  const tax = subtotal * 0.08;
+  const total = subtotal + shipping + tax;
+
+  // Empty cart state
+  if (cartItems.length === 0 && !isSuccess) {
+    return (
+      <div className="checkout-page">
+        <div className="checkout-container">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="empty-cart-container"
+          >
+            <div className="empty-cart-icon">
+              <ShoppingCart size={80} color="#d1d5db" />
+            </div>
+            <h2 className="empty-cart-title">Your cart is empty</h2>
+            <p className="empty-cart-message">
+              Add some books to your cart to proceed with checkout
+            </p>
+            <button
+              onClick={() => navigate("/books")}
+              className="btn-primary-checkout"
+            >
+              Browse Books
+            </button>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen ng-gradient-hero relative">
-      {/* Background Image */}
-
-      {/* Content */}
-      <div className="relative z-10 container max-w-6xl mx-auto px-4 py-8">
+    <div className="checkout-page">
+      <div className="checkout-container">
         {/* Header */}
-        <motion.header
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="checkout-header"
         >
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-cream-muted hover:text-cream transition-colors mb-6"
+            className="btn-secondary-checkout"
+            style={{ width: "auto", marginBottom: "2rem" }}
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Cart</span>
+            <ArrowLeft size={20} className="arrow-icon"/>
+            Back to Shopping
           </button>
 
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="font-serif text-4xl md:text-5xl text-cream mb-2">
-                Secure <span className="text-gradient">Checkout</span>
-              </h1>
-              <p className="text-cream-muted">
-                Complete your purchase securely
-              </p>
-            </div>
-            <div className="hidden md:flex items-center gap-2 text-gold">
-              <ShoppingCart className="w-6 h-6" />
-              <span className="font-serif text-2xl">{cartItems.length}</span>
-            </div>
-          </div>
-        </motion.header>
+          <h1 className="checkout-title">Checkout</h1>
+          <p className="checkout-subtitle">
+            Complete your purchase securely with our encrypted payment system
+          </p>
+        </motion.div>
 
         <AnimatePresence mode="wait">
           {isSuccess ? (
@@ -129,29 +158,45 @@ const CheckoutPage = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="glass-card rounded-2xl p-8 shadow-card"
+              className="success-container"
             >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", delay: 0.2 }}
-                className="w-24 h-24 mx-auto mb-6 bg-gradient-gold rounded-full flex items-center justify-center"
-              >
-                <CheckCircle2 className="w-12 h-12 text-navy" />
-              </motion.div>
-              <h2 className="font-serif text-3xl text-cream mb-4">
-                Thank You!
-              </h2>
-              <p className="text-cream-muted mb-8">
-                Your order has been placed successfully. You will receive a
-                confirmation email shortly.
-              </p>
-              <button
-                onClick={() => navigate("/")}
-                className="px-8 py-3 bg-gradient-gold text-navy font-semibold rounded-xl hover:shadow-gold transition-all duration-300"
-              >
-                Continue Shopping
-              </button>
+              <div className="success-card">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", delay: 0.2, stiffness: 200 }}
+                  className="success-icon"
+                >
+                  <CheckCircle2 size={40} />
+                </motion.div>
+
+                <h2 className="success-title">Order Placed Successfully!</h2>
+                <p className="success-message">
+                  Thank you for your purchase. Your order has been confirmed and will be processed shortly.
+                  You will receive a confirmation email with tracking details.
+                </p>
+
+                <div className="success-order-number">
+                  <div className="success-order-label">Order Number</div>
+                  <div className="success-order-value">{orderNumber}</div>
+                </div>
+
+                <div className="success-buttons">
+                  <button
+                    onClick={() => navigate("/books")}
+                    className="btn-primary-checkout"
+                  >
+                    <ShoppingCart size={20} />
+                    Continue Shopping
+                  </button>
+                  <button
+                    onClick={() => navigate("/")}
+                    className="btn-secondary-checkout"
+                  >
+                    Back to Home
+                  </button>
+                </div>
+              </div>
             </motion.div>
           ) : (
             /* Checkout Form */
@@ -160,25 +205,144 @@ const CheckoutPage = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="grid lg:grid-cols-2 gap-8"
+              className="checkout-grid"
             >
-              {/* Payment Section */}
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="glass-card rounded-2xl p-6 md:p-8 shadow-card"
-              >
-                <h2 className="font-serif text-2xl text-cream mb-6 flex items-center gap-3">
-                  <Sparkles className="w-6 h-6 text-gold" />
-                  Payment Details
-                </h2>
+              {/* Left Column - Payment Details */}
+              <div>
+                {/* Payment Information */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="checkout-form-section"
+                >
+                  <h2 className="form-section-title">
+                    <CreditCard size={24} />
+                    Payment Information
+                  </h2>
 
-                <CreditCardInput
-                  cardNumber={cardNumber}
-                  expiryDate={expiryDate}
-                  onCardNumberChange={setCardNumber}
-                  onExpiryDateChange={setExpiryDate}
+                  <CreditCardInput
+                    cardNumber={cardNumber}
+                    expiryDate={expiryDate}
+                    cvv={cvv}
+                    cardHolder={cardHolder}
+                    onCardNumberChange={setCardNumber}
+                    onExpiryDateChange={setExpiryDate}
+                    onCvvChange={setCvv}
+                    onCardHolderChange={setCardHolder}
+                  />
+                </motion.div>
+
+                {/* Shipping Information */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="checkout-form-section"
+                  style={{ marginTop: "1.5rem" }}
+                >
+                  <h2 className="form-section-title">
+                    <Package size={24} />
+                    Shipping Information
+                  </h2>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label required">First Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="John"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label required">Last Name</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="Doe"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label required">Email Address</label>
+                    <input
+                      type="email"
+                      className="form-input"
+                      placeholder="john.doe@example.com"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label required">Phone Number</label>
+                    <input
+                      type="tel"
+                      className="form-input"
+                      placeholder="+1 (555) 000-0000"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label required">Street Address</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="123 Main Street"
+                    />
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label required">City</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="New York"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label required">State</label>
+                      <select className="form-select">
+                        <option value="">Select State</option>
+                        <option value="NY">New York</option>
+                        <option value="CA">California</option>
+                        <option value="TX">Texas</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label className="form-label required">ZIP Code</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="10001"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label required">Country</label>
+                      <select className="form-select">
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="UK">United Kingdom</option>
+                      </select>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+              {/* Right Column - Order Summary */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <div className="order-summary-section">
+                <OrderSummary
+                  items={cartItems}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveItem={removeFromCart}
                 />
 
                 {/* Checkout Button */}
@@ -187,55 +351,26 @@ const CheckoutPage = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleCheckout}
                   disabled={isProcessing || cartItems.length === 0}
-                  className="w-full mt-8 py-4 bg-gradient-gold text-navy font-bold text-lg rounded-xl shadow-gold hover:shadow-[0_6px_40px_hsl(43_74%_55%_/_0.35)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                  className="btn-primary-checkout"
                 >
                   {isProcessing ? (
                     <>
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{
-                          repeat: Infinity,
-                          duration: 1,
-                          ease: "linear",
-                        }}
-                        className="w-5 h-5 border-2 border-navy border-t-transparent rounded-full"
-                      />
-                      Processing...
+                      <div className="spinner" />
+                      Processing Payment...
                     </>
                   ) : (
-                    <>Complete Purchase - ${finalTotal.toFixed(2)}</>
+                    <>
+                      Complete Purchase - ${total.toFixed(2)}
+                    </>
                   )}
                 </motion.button>
 
                 <SecurityBadges />
-              </motion.div>
-
-              {/* Order Summary Section */}
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <OrderSummary
-                  items={cartItems}
-                  onUpdateQuantity={updateQuantity}
-                  onRemoveItem={removeItem}
-                />
+                </div>
               </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Footer */}
-        <motion.footer
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6 }}
-          className="mt-12 text-center text-cream-muted text-sm"
-        >
-          <p>© 2025 Alexandria Bookstore. All rights reserved.</p>
-          <p className="mt-1">A project for Database Systems - Fall 2025</p>
-        </motion.footer>
       </div>
     </div>
   );

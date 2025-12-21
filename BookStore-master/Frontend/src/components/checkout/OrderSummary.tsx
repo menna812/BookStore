@@ -1,19 +1,12 @@
 import { motion } from "framer-motion";
-import { Book, Minus, Plus, Trash2 } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Trash2 } from "lucide-react";
 
-export interface CartItem {
-  isbn: string;
-  title: string;
-  author: string;
-  price: number;
-  quantity: number;
-  coverImage?: string;
-}
+import { CartItem } from "../../context/CartContext";
 
 interface OrderSummaryProps {
   items: CartItem[];
-  onUpdateQuantity: (isbn: string, quantity: number) => void;
-  onRemoveItem: (isbn: string) => void;
+  onUpdateQuantity: (ISBN: string, quantity: number) => void;
+  onRemoveItem: (ISBN: string) => void;
 }
 
 const OrderSummary = ({
@@ -21,12 +14,10 @@ const OrderSummary = ({
   onUpdateQuantity,
   onRemoveItem,
 }: OrderSummaryProps) => {
-  const subtotal = items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  const subtotal = items.reduce((sum, item) => sum + item.sellingPrice * item.Buying_quantity, 0);
+  const shipping = subtotal > 50 ? 0 : 5.99;
   const tax = subtotal * 0.08;
-  const total = subtotal + tax;
+  const total = subtotal + shipping + tax;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -44,100 +35,142 @@ const OrderSummary = ({
   };
 
   return (
-    <div className="glass-card rounded-2xl p-6 shadow-card">
-      <h2 className="font-serif text-2xl text-cream mb-6 flex items-center gap-3">
-        <Book className="w-6 h-6 text-gold" />
+    <div className="order-summary-section">
+      <h2 className="order-summary-title">
         Order Summary
       </h2>
 
+      {/* Items List */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="space-y-4 mb-6"
+        className="order-items-list"
       >
         {items.map((item) => (
           <motion.div
-            key={item.isbn}
+            key={item.ISBN}
             variants={itemVariants}
-            className="flex gap-4 p-4 bg-secondary/50 rounded-xl border border-border/50 group hover:border-primary/30 transition-all duration-300"
+            className="order-item"
           >
             {/* Book Cover */}
-            <div className="w-16 h-20 bg-gradient-to-br from-gold/20 to-gold-dark/20 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
-              {item.coverImage ? (
-                <img
-                  src={item.coverImage}
-                  alt={item.title}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <Book className="w-8 h-8 text-gold/60" />
-              )}
-            </div>
+            <img
+              src={item.avatar}
+              alt={item.Title}
+              className="order-item-image"
+            />
 
             {/* Book Details */}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-serif text-cream font-medium truncate">
-                {item.title}
-              </h3>
-              <p className="text-cream-muted text-sm">{item.author}</p>
-              <p className="text-gold font-semibold mt-1">
-                ${item.price.toFixed(2)}
+            <div className="order-item-details">
+              <h3 className="order-item-title">{item.Title}</h3>
+              <p className="order-item-author">{item.author}</p>
+              <p className="order-item-price">
+                ${item.sellingPrice.toFixed(2)} each
               </p>
-            </div>
-
-            {/* Quantity Controls */}
-            <div className="flex flex-col items-end justify-between">
-              <button
-                onClick={() => onRemoveItem(item.isbn)}
-                className="text-muted-foreground hover:text-destructive transition-colors p-1 opacity-0 group-hover:opacity-100"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center gap-2 bg-secondary rounded-lg p-1">
+              
+              {/* Quantity Controls */}
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: "0.5rem",
+                marginTop: "0.5rem"
+              }}>
                 <button
-                  onClick={() =>
-                    onUpdateQuantity(item.isbn, Math.max(1, item.quantity - 1))
-                  }
-                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-primary/20 text-cream-muted hover:text-cream transition-all"
+                  onClick={() => onUpdateQuantity(item.ISBN, Math.max(1, item.Buying_quantity - 1))}
+                  className="quantity-btn"
+                  aria-label="Decrease quantity"
                 >
-                  <Minus className="w-3 h-3" />
+                  <Minus size={14} />
                 </button>
-                <span className="w-6 text-center text-cream text-sm font-medium">
-                  {item.quantity}
+                <span style={{
+                  fontSize: "0.875rem",
+                  color: "#111827",
+                  fontWeight: "600",
+                  minWidth: "50px",
+                  textAlign: "center"
+                }}>
+                  Qty: {item.Buying_quantity}
                 </span>
                 <button
-                  onClick={() => onUpdateQuantity(item.isbn, item.quantity + 1)}
-                  className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-primary/20 text-cream-muted hover:text-cream transition-all"
+                  onClick={() => onUpdateQuantity(item.ISBN, item.Buying_quantity + 1)}
+                  className="quantity-btn"
+                  aria-label="Increase quantity"
                 >
-                  <Plus className="w-3 h-3" />
+                  <Plus size={14} />
                 </button>
+              </div>
+            </div>
+
+            {/* Price and Remove */}
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-end",
+              justifyContent: "space-between",
+              gap: "0.5rem"
+            }}>
+              <button
+                onClick={() => onRemoveItem(item.ISBN)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#6b7280",
+                  cursor: "pointer",
+                  padding: "0.25rem",
+                  transition: "color 0.2s"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = "#ef4444"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "#6b7280"}
+                aria-label={`Remove ${item.Title}`}
+              >
+                <Trash2 size={18} />
+              </button>
+
+              <div style={{
+                textAlign: "right"
+              }}>
+                <div style={{
+                  fontSize: "0.875rem",
+                  fontWeight: "700",
+                  color: "#f97316"
+                }}>
+                  ${(item.sellingPrice * item.Buying_quantity).toFixed(2)}
+                </div>
               </div>
             </div>
           </motion.div>
         ))}
       </motion.div>
 
-      {/* Totals */}
-      <div className="border-t border-border pt-4 space-y-3">
-        <div className="flex justify-between text-cream-muted">
-          <span>Subtotal</span>
-          <span>${subtotal.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-between text-cream-muted">
-          <span>Tax (8%)</span>
-          <span>${tax.toFixed(2)}</span>
-        </div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="flex justify-between text-xl font-serif pt-3 border-t border-border"
-        >
-          <span className="text-cream">Total</span>
-          <span className="text-gradient font-bold">${total.toFixed(2)}</span>
-        </motion.div>
+      {/* Summary Totals */}
+      <div className="order-summary-divider"></div>
+
+      <div className="summary-row">
+        <span className="summary-label">Subtotal</span>
+        <span className="summary-value">${subtotal.toFixed(2)}</span>
+      </div>
+
+      <div className="summary-row">
+        <span className="summary-label">Shipping</span>
+        <span className={`summary-value ${shipping === 0 ? "free" : ""}`}>
+          {shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
+        </span>
+      </div>
+
+      {shipping > 0 && subtotal < 50 && (
+        <p className="shipping-note">
+          Add ${(50 - subtotal).toFixed(2)} more for free shipping!
+        </p>
+      )}
+
+      <div className="summary-row">
+        <span className="summary-label">Tax (8%)</span>
+        <span className="summary-value">${tax.toFixed(2)}</span>
+      </div>
+
+      <div className="total-row">
+        <span className="total-label">Total</span>
+        <span className="total-value">${total.toFixed(2)}</span>
       </div>
     </div>
   );

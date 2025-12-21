@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import '../../styles/bookgallery.css';
+import { useCart } from '../../context/CartContext';
+
 
 interface Book {
     ISBN: string;
@@ -13,7 +15,12 @@ interface Book {
     rating_count: number;
 }
 
-export const BookGallery: React.FC = () => {
+interface BookGalleryProps {
+  onCartOpen?: () => void; // Add this prop
+}
+
+export const BookGallery: React.FC <BookGalleryProps> = ({ onCartOpen }) => {
+    const { addToCart } = useCart();
     const [books, setBooks] = useState<Book[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -85,6 +92,32 @@ export const BookGallery: React.FC = () => {
 
     const featuredBook = books[0];
     const sideBooks = books.slice(1, 9);
+   const handleAddToCart = (book: Book) => {
+  console.log('🔴 handleAddToCart clicked');
+  console.log('🔴 Book data:', book);
+  console.log('🔴 Cart context exists:', !!addToCart);
+  
+  const cartItem = {
+    ISBN: book.ISBN,
+    Title: book.Title,
+    sellingPrice: Number(book.sellingPrice),
+    Buying_quantity: 1,
+    avatar: book.avatar,
+  };
+  
+  console.log('🔴 Cart item to add:', cartItem);
+  
+  addToCart(cartItem);
+  
+  console.log('🔴 addToCart called');
+  
+  // Open cart if function exists
+  if (onCartOpen) {
+    console.log('🔴 Opening cart sidebar');
+    onCartOpen();
+  }
+};
+    
 
     return (
         <section className="book-gallery-section">
@@ -110,7 +143,7 @@ export const BookGallery: React.FC = () => {
                                     className="featured-book-image"
                                 />
                                 <div className="hover-overlay">
-                                    <button className="add-to-cart-btn">
+                                    <button className="add-to-cart-btn" onClick={() => handleAddToCart(featuredBook)}>
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <circle cx="9" cy="21" r="1" />
                                             <circle cx="20" cy="21" r="1" />
@@ -153,7 +186,7 @@ export const BookGallery: React.FC = () => {
                                             className="side-book-image"
                                         />
                                         <div className="hover-overlay-small">
-                                            <button className="add-to-cart-btn-small">
+                                            <button className="add-to-cart-btn-small" onClick={() => handleAddToCart(book)}>
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                     <circle cx="9" cy="21" r="1" />
                                                     <circle cx="20" cy="21" r="1" />

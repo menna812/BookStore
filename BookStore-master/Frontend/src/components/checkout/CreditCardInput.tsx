@@ -1,21 +1,29 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CreditCard, Lock, Calendar } from "lucide-react";
+import { CreditCard, Lock, Calendar, Hash, User } from "lucide-react";
 
 interface CreditCardInputProps {
   cardNumber: string;
   expiryDate: string;
   onCardNumberChange: (value: string) => void;
   onExpiryDateChange: (value: string) => void;
+  cvv?: string;
+  cardHolder?: string;
+  onCvvChange?: (value: string) => void;
+  onCardHolderChange?: (value: string) => void;
 }
 
 const CreditCardInput = ({
   cardNumber,
   expiryDate,
+  cvv = "",
+  cardHolder = "",
   onCardNumberChange,
   onExpiryDateChange,
+  onCvvChange = () => {},
+  onCardHolderChange = () => {},
 }: CreditCardInputProps) => {
-  const [focused, setFocused] = useState<"card" | "expiry" | null>(null);
+  const [focused, setFocused] = useState<"card" | "expiry" | "cvv" | "holder" | null>(null);
 
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
@@ -55,72 +63,98 @@ const CreditCardInput = ({
   return (
     <div className="space-y-6">
       {/* Virtual Card Preview */}
-      <motion.div
-        initial={{ rotateY: 0 }}
-        animate={{ rotateY: focused ? 5 : 0 }}
-        transition={{ duration: 0.4 }}
-        className="relative h-48 w-full max-w-md mx-auto perspective-1000"
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-secondary via-card to-navy-light rounded-2xl p-6 shadow-card border border-border overflow-hidden">
-          {/* Card chip */}
-          <div className="absolute top-6 left-6">
-            <div className="w-12 h-9 rounded-md bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center">
-              <div className="w-8 h-6 rounded-sm bg-gradient-to-r from-gold-dark to-gold opacity-80" />
-            </div>
-          </div>
+      <div className="credit-card-preview">
+        <div className="card-chip"></div>
 
-          {/* Card type logo */}
-          <div className="absolute top-6 right-6 text-gold font-serif text-lg font-semibold">
-            {cardType || "Card"}
+        {cardType && (
+          <div style={{
+            position: "absolute",
+            top: "1.5rem",
+            right: "1.5rem",
+            fontSize: "1.125rem",
+            fontWeight: "700",
+            color: "white",
+            fontFamily: "Playfair Display, serif"
+          }}>
+            {cardType}
           </div>
-
-          {/* Card number */}
-          <div className="absolute top-24 left-6 right-6">
-            <p className="text-cream font-mono text-xl tracking-[0.2em]">
-              {cardNumber || "•••• •••• •••• ••••"}
-            </p>
-          </div>
-
-          {/* Expiry */}
-          <div className="absolute bottom-6 left-6">
-            <p className="text-cream-muted text-xs mb-1">EXPIRES</p>
-            <p className="text-cream font-mono text-sm">
-              {expiryDate || "MM/YY"}
-            </p>
-          </div>
-
-          {/* Decorative elements */}
-          <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-gradient-glow opacity-40" />
-          <div className="absolute -left-10 -top-10 w-32 h-32 rounded-full bg-gradient-glow opacity-20" />
-        </div>
-      </motion.div>
+        )}
+      </div>
 
       {/* Input Fields */}
-      <div className="space-y-4">
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+        {/* Card Holder Name */}
+        <div className="form-group">
+          <label className="form-label required">Card Holder Name</label>
+          <div style={{ position: "relative" }}>
+            <User
+              size={20}
+              style={{
+                position: "absolute",
+                left: "1rem",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#6b7280"
+              }}
+            />
+            <input
+              type="text"
+              placeholder="John Doe"
+              value={cardHolder}
+              onChange={(e) => onCardHolderChange(e.target.value.toUpperCase())}
+              onFocus={() => setFocused("holder")}
+              onBlur={() => setFocused(null)}
+              className="form-input"
+              style={{
+                paddingLeft: "3rem",
+                textTransform: "uppercase"
+              }}
+            />
+          </div>
+        </div>
+
         {/* Card Number */}
-        <div className="relative">
-          <label className="block text-cream-muted text-sm mb-2 font-medium">
-            Card Number
-          </label>
-          <div className="relative">
-            <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+        <div className="form-group">
+          <label className="form-label required">Card Number</label>
+          <div style={{ position: "relative" }}>
+            <CreditCard
+              size={20}
+              style={{
+                position: "absolute",
+                left: "1rem",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#6b7280"
+              }}
+            />
             <input
               type="text"
               maxLength={19}
               placeholder="1234 5678 9012 3456"
               value={cardNumber}
-              onChange={(e) =>
-                onCardNumberChange(formatCardNumber(e.target.value))
-              }
+              onChange={(e) => onCardNumberChange(formatCardNumber(e.target.value))}
               onFocus={() => setFocused("card")}
               onBlur={() => setFocused(null)}
-              className="w-full pl-12 pr-4 py-4 bg-secondary border border-border rounded-xl text-cream placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-300 font-mono tracking-wider"
+              className="form-input"
+              style={{
+                paddingLeft: "3rem",
+                fontFamily: "Courier New, monospace",
+                letterSpacing: "0.1em"
+              }}
             />
             {cardType && (
               <motion.span
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gold text-sm font-semibold"
+                style={{
+                  position: "absolute",
+                  right: "1rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#f97316",
+                  fontSize: "0.875rem",
+                  fontWeight: "700"
+                }}
               >
                 {cardType}
               </motion.span>
@@ -128,23 +162,66 @@ const CreditCardInput = ({
           </div>
         </div>
 
-        {/* Expiry Date */}
-        <div className="relative">
-          <label className="block text-cream-muted text-sm mb-2 font-medium">
-            Expiry Date
-          </label>
-          <div className="relative">
-            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input
-              type="text"
-              maxLength={5}
-              placeholder="MM/YY"
-              value={expiryDate}
-              onChange={(e) => onExpiryDateChange(formatExpiry(e.target.value))}
-              onFocus={() => setFocused("expiry")}
-              onBlur={() => setFocused(null)}
-              className="w-full pl-12 pr-4 py-4 bg-secondary border border-border rounded-xl text-cream placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-300 font-mono"
-            />
+        {/* Expiry Date and CVV */}
+        <div className="form-row-3">
+          <div className="form-group">
+            <label className="form-label required">Expiry Date</label>
+            <div style={{ position: "relative" }}>
+              <Calendar
+                size={20}
+                style={{
+                  position: "absolute",
+                  left: "1rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#6b7280"
+                }}
+              />
+              <input
+                type="text"
+                maxLength={5}
+                placeholder="MM/YY"
+                value={expiryDate}
+                onChange={(e) => onExpiryDateChange(formatExpiry(e.target.value))}
+                onFocus={() => setFocused("expiry")}
+                onBlur={() => setFocused(null)}
+                className="form-input"
+                style={{
+                  paddingLeft: "3rem",
+                  fontFamily: "Courier New, monospace"
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label required">CVV</label>
+            <div style={{ position: "relative" }}>
+              <Hash
+                size={20}
+                style={{
+                  position: "absolute",
+                  left: "1rem",
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  color: "#6b7280"
+                }}
+              />
+              <input
+                type="text"
+                maxLength={4}
+                placeholder="123"
+                value={cvv}
+                onChange={(e) => onCvvChange(e.target.value.replace(/[^0-9]/g, ""))}
+                onFocus={() => setFocused("cvv")}
+                onBlur={() => setFocused(null)}
+                className="form-input"
+                style={{
+                  paddingLeft: "3rem",
+                  fontFamily: "Courier New, monospace"
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -154,10 +231,20 @@ const CreditCardInput = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="flex items-center gap-2 text-cream-muted text-sm"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          fontSize: "0.875rem",
+          color: "#6b7280",
+          padding: "0.75rem 1rem",
+          background: "#f9fafb",
+          borderRadius: "0.5rem",
+          border: "1px solid #e5e7eb"
+        }}
       >
-        <Lock className="w-4 h-4 text-gold" />
-        <span>Your payment information is encrypted and secure</span>
+        <Lock size={16} color="#f97316" />
+        <span>Your payment information is encrypted and secure with 256-bit SSL</span>
       </motion.div>
     </div>
   );
