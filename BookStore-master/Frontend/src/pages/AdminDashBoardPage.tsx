@@ -94,9 +94,8 @@ const AdminDashboard = () => {
     <div className="dashboard-root">
       {/* Sidebar */}
       <aside
-        className={`sidebar ${
-          sidebarOpen ? "sidebar-expanded" : "sidebar-collapsed"
-        }`}
+        className={`sidebar ${sidebarOpen ? "sidebar-expanded" : "sidebar-collapsed"
+          }`}
       >
         {/* Logo & Toggle */}
         <div className="sidebar-header">
@@ -399,10 +398,10 @@ const BooksManagement = () => {
         : undefined,
       author_ids: newBook.author_ids
         ? newBook.author_ids
-            .split(",")
-            .map((id: string) => id.trim())
-            .filter(Boolean)
-            .map((id: string) => Number(id))
+          .split(",")
+          .map((id: string) => id.trim())
+          .filter(Boolean)
+          .map((id: string) => Number(id))
         : undefined,
       avatar: newBook.avatar || undefined,
       rating:
@@ -411,7 +410,7 @@ const BooksManagement = () => {
           : undefined,
       rating_count:
         typeof newBook.rating_count !== "undefined" &&
-        newBook.rating_count !== ""
+          newBook.rating_count !== ""
           ? Number(newBook.rating_count)
           : undefined,
     };
@@ -761,7 +760,7 @@ const BooksManagement = () => {
                     <td>${book.price}</td>
                     <td>
                       {typeof book.rating !== "undefined" &&
-                      book.rating !== null
+                        book.rating !== null
                         ? `${book.rating} (${book.rating_count ?? 0})`
                         : "—"}
                     </td>
@@ -872,8 +871,81 @@ const PublisherOrders = () => {
 
 // Reports Component
 const Reports = () => {
+  const [activeReport, setActiveReport] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Report data states
+  const [lastMonthSales, setLastMonthSales] = useState<number | null>(null);
+  const [dailySales, setDailySales] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [topCustomers, setTopCustomers] = useState<any[]>([]);
+  const [topBooks, setTopBooks] = useState<any[]>([]);
+  const [replenishmentData, setReplenishmentData] = useState<any>(null);
+  const [searchIsbn, setSearchIsbn] = useState<string>("");
+
+  const token = localStorage.getItem("token");
+  const API_URL = "http://localhost:3000/api";
+
+  const fetchReport = async (endpoint: string, params?: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const url = params ? `${API_URL}${endpoint}?${params}` : `${API_URL}${endpoint}`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch report");
+      return await res.json();
+    } catch (err: any) {
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLastMonthSales = async () => {
+    setActiveReport("lastMonth");
+    const data = await fetchReport("/reports/sales/last-month");
+    if (data) setLastMonthSales(data.total_sales || 0);
+  };
+
+  const handleDailySales = async () => {
+    if (!selectedDate) {
+      setError("Please select a date");
+      return;
+    }
+    setActiveReport("daily");
+    const data = await fetchReport("/reports/sales/day", `date=${selectedDate}`);
+    if (data) setDailySales(data.daily_sales || 0);
+  };
+
+  const handleTopCustomers = async () => {
+    setActiveReport("topCustomers");
+    const data = await fetchReport("/reports/customers/top5");
+    if (data) setTopCustomers(data);
+  };
+
+  const handleTopBooks = async () => {
+    setActiveReport("topBooks");
+    const data = await fetchReport("/reports/books/top10");
+    if (data) setTopBooks(data);
+  };
+
+  const handleReplenishment = async () => {
+    if (!searchIsbn) {
+      setError("Please enter an ISBN");
+      return;
+    }
+    setActiveReport("replenishment");
+    const data = await fetchReport(`/reports/books/replenishment/${searchIsbn}`);
+    if (data) setReplenishmentData(data);
+  };
+
   return (
     <div className="flex-column gap-4">
+      {/* Report Buttons */}
       <div className="flex gap-4" style={{ flexWrap: "wrap" }}>
         <div className="card" style={{ flex: "1 1 260px", borderLeft: "none" }}>
           <h3
@@ -884,18 +956,31 @@ const Reports = () => {
             Sales Reports
           </h3>
           <div className="flex-column gap-4" style={{ marginTop: "16px" }}>
-            <button className="report-button">
+            <button className="report-button" onClick={handleLastMonthSales}>
               <p className="card-title" style={{ fontSize: "14px" }}>
                 Total Sales - Last Month
               </p>
               <p className="card-subtitle">View monthly sales summary</p>
             </button>
-            <button className="report-button">
-              <p className="card-title" style={{ fontSize: "14px" }}>
-                Total Sales - Specific Day
-              </p>
-              <p className="card-subtitle">Select a date to view sales</p>
-            </button>
+            <div className="flex-column gap-2">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                style={{
+                  padding: "8px 12px",
+                  borderRadius: "8px",
+                  border: "1px solid #e5e7eb",
+                  fontSize: "14px",
+                }}
+              />
+              <button className="report-button" onClick={handleDailySales}>
+                <p className="card-title" style={{ fontSize: "14px" }}>
+                  Total Sales - Specific Day
+                </p>
+                <p className="card-subtitle">Select a date to view sales</p>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -908,13 +993,13 @@ const Reports = () => {
             Top Performers
           </h3>
           <div className="flex-column gap-4" style={{ marginTop: "16px" }}>
-            <button className="report-button">
+            <button className="report-button" onClick={handleTopCustomers}>
               <p className="card-title" style={{ fontSize: "14px" }}>
                 Top 5 Customers (Last 3 Months)
               </p>
               <p className="card-subtitle">Highest spending customers</p>
             </button>
-            <button className="report-button">
+            <button className="report-button" onClick={handleTopBooks}>
               <p className="card-title" style={{ fontSize: "14px" }}>
                 Top 10 Selling Books (Last 3 Months)
               </p>
@@ -922,7 +1007,181 @@ const Reports = () => {
             </button>
           </div>
         </div>
+
+        <div className="card" style={{ flex: "1 1 260px", borderLeft: "none" }}>
+          <h3
+            className="card-title"
+            style={{ display: "flex", alignItems: "center", gap: "8px" }}
+          >
+            <Package size={24} />
+            Inventory Reports
+          </h3>
+          <div className="flex-column gap-4" style={{ marginTop: "16px" }}>
+            <input
+              type="text"
+              placeholder="Enter ISBN"
+              value={searchIsbn}
+              onChange={(e) => setSearchIsbn(e.target.value)}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "8px",
+                border: "1px solid #e5e7eb",
+                fontSize: "14px",
+              }}
+            />
+            <button className="report-button" onClick={handleReplenishment}>
+              <p className="card-title" style={{ fontSize: "14px" }}>
+                Book Replenishment Count
+              </p>
+              <p className="card-subtitle">Times book was reordered</p>
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div
+          style={{
+            padding: "12px 16px",
+            backgroundColor: "#fee2e2",
+            color: "#dc2626",
+            borderRadius: "8px",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>
+          <p>Loading report...</p>
+        </div>
+      )}
+
+      {/* Report Results */}
+      {!loading && activeReport === "lastMonth" && lastMonthSales !== null && (
+        <div className="card card-green" style={{ borderLeft: "4px solid #16a34a" }}>
+          <h3 className="card-title">Last Month Sales</h3>
+          <p className="card-number" style={{ color: "#16a34a", fontSize: "36px" }}>
+            ${lastMonthSales.toFixed(2)}
+          </p>
+          <p className="card-subtitle">Total revenue from previous month</p>
+        </div>
+      )}
+
+      {!loading && activeReport === "daily" && dailySales !== null && (
+        <div className="card card-blue" style={{ borderLeft: "4px solid #2563eb" }}>
+          <h3 className="card-title">Sales on {selectedDate}</h3>
+          <p className="card-number" style={{ color: "#2563eb", fontSize: "36px" }}>
+            ${dailySales.toFixed(2)}
+          </p>
+          <p className="card-subtitle">Total revenue for selected day</p>
+        </div>
+      )}
+
+      {!loading && activeReport === "topCustomers" && topCustomers.length > 0 && (
+        <div className="card" style={{ borderLeft: "none" }}>
+          <h3 className="card-title" style={{ marginBottom: "16px" }}>
+            Top 5 Customers (Last 3 Months)
+          </h3>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Customer Name</th>
+                <th>Total Spent</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topCustomers.map((customer, index) => (
+                <tr key={index}>
+                  <td>
+                    <span
+                      style={{
+                        backgroundColor: index === 0 ? "#fbbf24" : index === 1 ? "#9ca3af" : index === 2 ? "#cd7f32" : "#e5e7eb",
+                        color: index < 3 ? "#fff" : "#374151",
+                        padding: "4px 10px",
+                        borderRadius: "50%",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {index + 1}
+                    </span>
+                  </td>
+                  <td>{customer.firstname} {customer.lastname}</td>
+                  <td style={{ fontWeight: "600", color: "#16a34a" }}>
+                    ${parseFloat(customer.total_spent).toFixed(2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!loading && activeReport === "topBooks" && topBooks.length > 0 && (
+        <div className="card" style={{ borderLeft: "none" }}>
+          <h3 className="card-title" style={{ marginBottom: "16px" }}>
+            Top 10 Selling Books (Last 3 Months)
+          </h3>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Book Title</th>
+                <th>Copies Sold</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topBooks.map((book, index) => (
+                <tr key={index}>
+                  <td>
+                    <span
+                      style={{
+                        backgroundColor: index === 0 ? "#fbbf24" : index === 1 ? "#9ca3af" : index === 2 ? "#cd7f32" : "#e5e7eb",
+                        color: index < 3 ? "#fff" : "#374151",
+                        padding: "4px 10px",
+                        borderRadius: "50%",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {index + 1}
+                    </span>
+                  </td>
+                  <td>{book.Title}</td>
+                  <td style={{ fontWeight: "600", color: "#2563eb" }}>
+                    {book.total_copies_sold}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!loading && activeReport === "replenishment" && replenishmentData && (
+        <div className="card card-orange" style={{ borderLeft: "4px solid #ea580c" }}>
+          <h3 className="card-title">{replenishmentData.Title || "Book"}</h3>
+          <p className="card-number" style={{ color: "#ea580c", fontSize: "36px" }}>
+            {replenishmentData.times_replenished || 0}
+          </p>
+          <p className="card-subtitle">Times this book has been replenished</p>
+        </div>
+      )}
+
+      {!loading && activeReport === "topCustomers" && topCustomers.length === 0 && (
+        <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>
+          <p className="card-subtitle">No customer data available for the last 3 months</p>
+        </div>
+      )}
+
+      {!loading && activeReport === "topBooks" && topBooks.length === 0 && (
+        <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>
+          <p className="card-subtitle">No book sales data available for the last 3 months</p>
+        </div>
+      )}
     </div>
   );
 };
