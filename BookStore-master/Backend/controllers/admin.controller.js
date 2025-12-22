@@ -1,6 +1,7 @@
 const { Admin, adminCreationSchema, adminUpdateSchema } = require('../models/admin.model');
 const { OrderPub } = require('../models/orderPub.model'); // For replenishment orders
-const Joi = require('joi'); 
+const db = require('../config/database');
+const Joi = require('joi');
 
 // --- ADMIN PROFILE MANAGEMENT ---
 
@@ -31,7 +32,7 @@ exports.getAdminProfile = async (req, res, next) => {
     try {
         const profile = await Admin.findById(req.userId);
         if (!profile) return res.status(404).json({ message: 'Admin profile not found.' });
-        
+
         res.json(profile);
     } catch (err) {
         next(err);
@@ -84,5 +85,145 @@ exports.confirmReplenishmentReceipt = async (req, res, next) => {
         res.json({ message: `Replenishment order ${orderPubId} confirmed and stock updated.` });
     } catch (err) {
         next(err);
+    }
+};
+
+// --- STOCK MANAGEMENT ---
+
+/**
+ * Get stock statistics (GET /api/admin/stock/stats)
+ */
+exports.getStockStats = async (req, res, next) => {
+    try {
+        // Low stock: books where stock_quantity < threshold but > 0
+        const [lowStock] = await db.execute(`
+            SELECT COUNT(*) as count FROM BOOK 
+            WHERE stock_quantity < threshold AND stock_quantity > 0
+        `);
+
+        // Out of stock: books where stock_quantity = 0
+        const [outOfStock] = await db.execute(`
+            SELECT COUNT(*) as count FROM BOOK 
+            WHERE stock_quantity = 0
+        `);
+
+        // Total books
+        const [totalBooks] = await db.execute(`
+            SELECT COUNT(*) as count FROM BOOK
+        `);
+
+        res.json({
+            lowStock: lowStock[0].count,
+            outOfStock: outOfStock[0].count,
+            totalBooks: totalBooks[0].count
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * Get books requiring attention (low stock or out of stock) (GET /api/admin/stock/alerts)
+ */
+exports.getStockAlerts = async (req, res, next) => {
+    try {
+        const [rows] = await db.execute(`
+            SELECT b.ISBN, b.Title, b.stock_quantity, b.threshold, 
+                   p.name as publisher_name, b.Publisher_id,
+                   CASE 
+                       WHEN b.stock_quantity = 0 THEN 'Out of Stock'
+                       WHEN b.stock_quantity < b.threshold THEN 'Low Stock'
+                   END as alert_type
+            FROM BOOK b
+            LEFT JOIN PUBLISHER p ON b.Publisher_id = p.Publisher_id
+            WHERE b.stock_quantity <= b.threshold
+            ORDER BY b.stock_quantity ASC
+        `);
+        res.json(rows);
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * Get all publisher orders with details (GET /api/admin/orders/all)
+ */
+exports.getAllPublisherOrders = async (req, res, next) => {
+    try {
+        const [orders] = await db.execute(`
+            SELECT op.order_pub_id, p.name AS publisher_name, 
+                   op.order_date, op.status, op.constant_quantity,
+                   GROUP_CONCAT(b.Title SEPARATOR ', ') as books
+            FROM ORDER_PUB op
+            JOIN PUBLISHER p ON op.publisher_id = p.Publisher_id
+            LEFT JOIN ORDER_PUB_ITEM opi ON op.order_pub_id = opi.order_pub_id
+            LEFT JOIN BOOK b ON opi.ISBN = b.ISBN
+            GROUP BY op.order_pub_id
+            ORDER BY op.order_date DESC
+        `);
+        res.json(orders);
+    } catch (err) {
+        next(err);
+    }
+};
+
+/**
+ * Manually place a publisher order for a book (POST /api/admin/orders/place)
+ */
+exports.placePublisherOrder = async (req, res, next) => {
+    const { isbn, quantity } = req.body;
+
+    if (!isbn) {
+        return res.status(400).json({ message: 'ISBN is required' });
+    }
+
+    const orderQuantity = quantity || 50; // Default constant quantity
+
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // Get the publisher for this book
+        const [book] = await connection.execute(
+            'SELECT Publisher_id FROM BOOK WHERE ISBN = ?',
+            [isbn]
+        );
+
+        if (!book.length || !book[0].Publisher_id) {
+            await connection.rollback();
+            return res.status(400).json({ message: 'Book not found or has no publisher' });
+        }
+
+        // Get a valid admin_id from the database
+        const [admins] = await connection.execute('SELECT admin_id FROM admin LIMIT 1');
+        const adminId = admins.length > 0 ? admins[0].admin_id : null;
+
+        // Create publisher order
+        const [orderResult] = await connection.execute(
+            `INSERT INTO ORDER_PUB (admin_id, publisher_id, order_date, status, constant_quantity)
+             VALUES (?, ?, NOW(), 'Pending', ?)`,
+            [adminId, book[0].Publisher_id, orderQuantity]
+        );
+
+        const orderPubId = orderResult.insertId;
+
+        // Add order item
+        await connection.execute(
+            `INSERT INTO ORDER_PUB_ITEM (order_pub_id, ISBN, quantity)
+             VALUES (?, ?, ?)`,
+            [orderPubId, isbn, orderQuantity]
+        );
+
+        await connection.commit();
+        res.status(201).json({
+            message: 'Publisher order placed successfully',
+            orderPubId,
+            quantity: orderQuantity
+        });
+    } catch (err) {
+        await connection.rollback();
+        next(err);
+    } finally {
+        connection.release();
     }
 };
