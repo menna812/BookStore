@@ -793,6 +793,77 @@ const BooksManagement = () => {
 
 // Stock Management Component
 const StockManagement = () => {
+  const [stats, setStats] = useState({ lowStock: 0, outOfStock: 0, totalBooks: 0 });
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [orderingIsbn, setOrderingIsbn] = useState<string | null>(null);
+  const token = localStorage.getItem("token");
+  const API_URL = "http://localhost:3000/api";
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [statsRes, alertsRes] = await Promise.all([
+        fetch(`${API_URL}/admin/stock/stats`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/admin/stock/alerts`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      if (statsRes.ok) {
+        const statsData = await statsRes.json();
+        setStats(statsData);
+      }
+      if (alertsRes.ok) {
+        const alertsData = await alertsRes.json();
+        setAlerts(alertsData);
+      }
+    } catch (err) {
+      console.error("Failed to fetch stock data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handlePlaceOrder = async (isbn: string) => {
+    if (!confirm(`Place a publisher order for 50 units of this book?`)) return;
+
+    setOrderingIsbn(isbn);
+    try {
+      const res = await fetch(`${API_URL}/admin/orders/place`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isbn, quantity: 50 }),
+      });
+
+      if (res.ok) {
+        alert("Publisher order placed successfully!");
+        fetchData(); // Refresh data
+      } else {
+        const err = await res.json();
+        alert(`Failed to place order: ${err.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error placing order");
+    } finally {
+      setOrderingIsbn(null);
+    }
+  };
+
+  if (loading) {
+    return <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>Loading stock data...</div>;
+  }
+
   return (
     <div className="flex-column gap-4">
       <div className="flex gap-4" style={{ flexWrap: "wrap" }}>
@@ -804,7 +875,7 @@ const StockManagement = () => {
             <div>
               <h3 className="card-title">Low Stock Books</h3>
               <p className="card-number" style={{ color: "#dc2626" }}>
-                12
+                {stats.lowStock}
               </p>
               <p className="card-subtitle">Books below threshold</p>
             </div>
@@ -820,7 +891,7 @@ const StockManagement = () => {
             <div>
               <h3 className="card-title">Out of Stock</h3>
               <p className="card-number" style={{ color: "#ea580c" }}>
-                5
+                {stats.outOfStock}
               </p>
               <p className="card-subtitle">Books need reordering</p>
             </div>
@@ -836,7 +907,7 @@ const StockManagement = () => {
             <div>
               <h3 className="card-title">Total Books</h3>
               <p className="card-number" style={{ color: "#16a34a" }}>
-                458
+                {stats.totalBooks}
               </p>
               <p className="card-subtitle">Books in inventory</p>
             </div>
@@ -846,10 +917,72 @@ const StockManagement = () => {
       </div>
 
       <div className="card" style={{ borderLeft: "none" }}>
-        <h3 className="card-title">Books Requiring Attention</h3>
-        <p className="card-subtitle">
-          Stock management table will appear here...
-        </p>
+        <h3 className="card-title" style={{ marginBottom: "16px" }}>Books Requiring Attention</h3>
+        {alerts.length === 0 ? (
+          <p className="card-subtitle">All books are sufficiently stocked!</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ISBN</th>
+                <th>Title</th>
+                <th>Stock</th>
+                <th>Threshold</th>
+                <th>Status</th>
+                <th>Publisher</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alerts.map((book) => (
+                <tr key={book.ISBN}>
+                  <td style={{ fontFamily: "monospace", fontSize: "12px" }}>{book.ISBN}</td>
+                  <td>{book.Title}</td>
+                  <td style={{
+                    fontWeight: "bold",
+                    color: book.stock_quantity === 0 ? "#dc2626" : "#ea580c"
+                  }}>
+                    {book.stock_quantity}
+                  </td>
+                  <td>{book.threshold}</td>
+                  <td>
+                    <span
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: "12px",
+                        fontSize: "12px",
+                        fontWeight: "500",
+                        backgroundColor: book.alert_type === "Out of Stock" ? "#fee2e2" : "#ffedd5",
+                        color: book.alert_type === "Out of Stock" ? "#dc2626" : "#ea580c",
+                      }}
+                    >
+                      {book.alert_type}
+                    </span>
+                  </td>
+                  <td>{book.publisher_name || "N/A"}</td>
+                  <td>
+                    <button
+                      onClick={() => handlePlaceOrder(book.ISBN)}
+                      disabled={orderingIsbn === book.ISBN || !book.Publisher_id}
+                      style={{
+                        padding: "6px 12px",
+                        backgroundColor: "#2563eb",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "6px",
+                        cursor: book.Publisher_id ? "pointer" : "not-allowed",
+                        opacity: orderingIsbn === book.ISBN ? 0.5 : 1,
+                        fontSize: "12px",
+                      }}
+                    >
+                      {orderingIsbn === book.ISBN ? "Ordering..." : "Order 50"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -857,13 +990,184 @@ const StockManagement = () => {
 
 // Publisher Orders Component
 const PublisherOrders = () => {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const token = localStorage.getItem("token");
+  const API_URL = "http://localhost:3000/api";
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/orders/all`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch orders:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const handleConfirmReceipt = async (orderPubId: number) => {
+    if (!confirm("Confirm receipt of this order? This will update book stock.")) return;
+
+    setConfirmingId(orderPubId);
+    try {
+      const res = await fetch(`${API_URL}/admin/replenishment/${orderPubId}/confirm`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        alert("Order confirmed and stock updated!");
+        fetchOrders();
+      } else {
+        const err = await res.json();
+        alert(`Failed: ${err.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error");
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Pending": return { bg: "#fef3c7", color: "#d97706" };
+      case "Received": return { bg: "#d1fae5", color: "#059669" };
+      case "Shipped": return { bg: "#dbeafe", color: "#2563eb" };
+      case "Cancelled": return { bg: "#fee2e2", color: "#dc2626" };
+      default: return { bg: "#f3f4f6", color: "#6b7280" };
+    }
+  };
+
+  if (loading) {
+    return <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>Loading orders...</div>;
+  }
+
   return (
     <div className="flex-column gap-4">
+      <div className="flex gap-4" style={{ flexWrap: "wrap" }}>
+        <div className="card card-yellow" style={{ flex: "1 1 220px" }}>
+          <div className="flex" style={{ justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h3 className="card-title">Pending Orders</h3>
+              <p className="card-number" style={{ color: "#d97706" }}>
+                {orders.filter((o) => o.status === "Pending").length}
+              </p>
+              <p className="card-subtitle">Awaiting delivery</p>
+            </div>
+            <ShoppingCart size={60} style={{ opacity: 0.2 }} />
+          </div>
+        </div>
+
+        <div className="card card-green" style={{ flex: "1 1 220px" }}>
+          <div className="flex" style={{ justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h3 className="card-title">Received Orders</h3>
+              <p className="card-number" style={{ color: "#059669" }}>
+                {orders.filter((o) => o.status === "Received").length}
+              </p>
+              <p className="card-subtitle">Completed</p>
+            </div>
+            <Package size={60} style={{ opacity: 0.2 }} />
+          </div>
+        </div>
+
+        <div className="card" style={{ flex: "1 1 220px", borderLeft: "none" }}>
+          <div className="flex" style={{ justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <h3 className="card-title">Total Orders</h3>
+              <p className="card-number" style={{ color: "#374151" }}>
+                {orders.length}
+              </p>
+              <p className="card-subtitle">All time</p>
+            </div>
+            <BarChart3 size={60} style={{ opacity: 0.2 }} />
+          </div>
+        </div>
+      </div>
+
       <div className="card" style={{ borderLeft: "none" }}>
-        <h3 className="card-title">Pending Orders from Publishers</h3>
-        <p className="card-subtitle">
-          Publisher orders list will appear here...
-        </p>
+        <h3 className="card-title" style={{ marginBottom: "16px" }}>Publisher Orders</h3>
+        {orders.length === 0 ? (
+          <p className="card-subtitle">No publisher orders yet.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Publisher</th>
+                <th>Books</th>
+                <th>Quantity</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => {
+                const statusStyle = getStatusColor(order.status);
+                return (
+                  <tr key={order.order_pub_id}>
+                    <td>#{order.order_pub_id}</td>
+                    <td>{order.publisher_name}</td>
+                    <td style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {order.books || "N/A"}
+                    </td>
+                    <td>{order.constant_quantity}</td>
+                    <td>{new Date(order.order_date).toLocaleDateString()}</td>
+                    <td>
+                      <span
+                        style={{
+                          padding: "4px 10px",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          fontWeight: "500",
+                          backgroundColor: statusStyle.bg,
+                          color: statusStyle.color,
+                        }}
+                      >
+                        {order.status}
+                      </span>
+                    </td>
+                    <td>
+                      {order.status === "Pending" && (
+                        <button
+                          onClick={() => handleConfirmReceipt(order.order_pub_id)}
+                          disabled={confirmingId === order.order_pub_id}
+                          style={{
+                            padding: "6px 12px",
+                            backgroundColor: "#059669",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            opacity: confirmingId === order.order_pub_id ? 0.5 : 1,
+                            fontSize: "12px",
+                          }}
+                        >
+                          {confirmingId === order.order_pub_id ? "Confirming..." : "Confirm Receipt"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

@@ -11,6 +11,14 @@ router.use(verifyToken, isAdmin);
 
 router.get("/profile", adminController.getAdminProfile);
 router.put("/profile", adminController.updateAdminProfile);
+
+// Stock Management
+router.get("/stock/stats", adminController.getStockStats);
+router.get("/stock/alerts", adminController.getStockAlerts);
+
+// Publisher Orders
+router.get("/orders/all", adminController.getAllPublisherOrders);
+router.post("/orders/place", adminController.placePublisherOrder);
 router.get(
   "/replenishment/pending",
   adminController.getPendingReplenishmentOrders
