@@ -14,6 +14,7 @@ import { HomePage } from "./pages/Homepage";
 import { Header } from "./components/common/Navbar";
 import { Footer } from "./components/common/Footer";
 import { AuthProvider } from "./context/AuthContext";
+import { AdminRoute, ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 import "./styles/auth.css";
 import "./styles/homepage.css";
@@ -70,9 +71,20 @@ export default function App() {
                     <Route path="/checkout" element={<CheckoutPage />} />
                     <Route
                       path="/admin/dashboard"
-                      element={<AdminDashboard />}
+                      element={
+                        <AdminRoute>
+                          <AdminDashboard />
+                        </AdminRoute>
+                      }
                     />
-                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route
+                      path="/profile"
+                      element={
+                        <ProtectedRoute>
+                          <ProfilePage />
+                        </ProtectedRoute>
+                      }
+                    />
                   </Routes>
                 </Layout>
               </HomeProvider>
