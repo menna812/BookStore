@@ -14,7 +14,10 @@ const OrderSummary = ({
   onUpdateQuantity,
   onRemoveItem,
 }: OrderSummaryProps) => {
-  const subtotal = items.reduce((sum, item) => sum + item.sellingPrice * item.Buying_quantity, 0);
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.sellingPrice * item.Buying_quantity,
+    0
+  );
   const shipping = subtotal > 50 ? 0 : 5.99;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
@@ -36,9 +39,7 @@ const OrderSummary = ({
 
   return (
     <div className="order-summary-section">
-      <h2 className="order-summary-title">
-        Order Summary
-      </h2>
+      <h2 className="order-summary-title">Order Summary</h2>
 
       {/* Items List */}
       <motion.div
@@ -65,34 +66,45 @@ const OrderSummary = ({
               <h3 className="order-item-title">{item.Title}</h3>
               <p className="order-item-author">{item.author}</p>
               <p className="order-item-price">
-                ${item.sellingPrice.toFixed(2)} each
+                ${Number(item.sellingPrice).toFixed(2)} each
               </p>
-              
+
               {/* Quantity Controls */}
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: "0.5rem",
-                marginTop: "0.5rem"
-              }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  marginTop: "0.5rem",
+                }}
+              >
                 <button
-                  onClick={() => onUpdateQuantity(item.ISBN, Math.max(1, item.Buying_quantity - 1))}
+                  onClick={() =>
+                    onUpdateQuantity(
+                      item.ISBN,
+                      Math.max(1, item.Buying_quantity - 1)
+                    )
+                  }
                   className="quantity-btn"
                   aria-label="Decrease quantity"
                 >
                   <Minus size={14} />
                 </button>
-                <span style={{
-                  fontSize: "0.875rem",
-                  color: "#111827",
-                  fontWeight: "600",
-                  minWidth: "50px",
-                  textAlign: "center"
-                }}>
+                <span
+                  style={{
+                    fontSize: "0.875rem",
+                    color: "#111827",
+                    fontWeight: "600",
+                    minWidth: "50px",
+                    textAlign: "center",
+                  }}
+                >
                   Qty: {item.Buying_quantity}
                 </span>
                 <button
-                  onClick={() => onUpdateQuantity(item.ISBN, item.Buying_quantity + 1)}
+                  onClick={() =>
+                    onUpdateQuantity(item.ISBN, item.Buying_quantity + 1)
+                  }
                   className="quantity-btn"
                   aria-label="Increase quantity"
                 >
@@ -102,13 +114,15 @@ const OrderSummary = ({
             </div>
 
             {/* Price and Remove */}
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              gap: "0.5rem"
-            }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+                gap: "0.5rem",
+              }}
+            >
               <button
                 onClick={() => onRemoveItem(item.ISBN)}
                 style={{
@@ -117,23 +131,27 @@ const OrderSummary = ({
                   color: "#6b7280",
                   cursor: "pointer",
                   padding: "0.25rem",
-                  transition: "color 0.2s"
+                  transition: "color 0.2s",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.color = "#ef4444"}
-                onMouseLeave={(e) => e.currentTarget.style.color = "#6b7280"}
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
+                onMouseLeave={(e) => (e.currentTarget.style.color = "#6b7280")}
                 aria-label={`Remove ${item.Title}`}
               >
                 <Trash2 size={18} />
               </button>
 
-              <div style={{
-                textAlign: "right"
-              }}>
-                <div style={{
-                  fontSize: "0.875rem",
-                  fontWeight: "700",
-                  color: "#f97316"
-                }}>
+              <div
+                style={{
+                  textAlign: "right",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "0.875rem",
+                    fontWeight: "700",
+                    color: "#f97316",
+                  }}
+                >
                   ${(item.sellingPrice * item.Buying_quantity).toFixed(2)}
                 </div>
               </div>
