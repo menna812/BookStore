@@ -4,7 +4,6 @@ const Joi = require("joi");
 
 // --- Joi Validation Schemas ---
 
-// 1. Schema for Customer Registration (Creation)
 const customerSchema = Joi.object({
   email: Joi.string().email().required().max(255),
   password: Joi.string().min(8).required(),
@@ -14,54 +13,45 @@ const customerSchema = Joi.object({
   shipping_address: Joi.string().max(500).allow(null, ""),
 });
 
-// 2. Schema for Customer Login
 const customerLoginSchema = Joi.object({
-  email: Joi.string().email().required().max(255),
+  email: Joi.string().email().required(),
   password: Joi.string().required(),
 });
 
-// 3. Schema for Customer Profile Update
 const customerUpdateSchema = Joi.object({
   firstname: Joi.string().max(100),
   lastname: Joi.string().max(100),
   phone_no: Joi.string().max(20).allow(null, ""),
   shipping_address: Joi.string().max(500).allow(null, ""),
   password: Joi.string().min(8),
-  // Avatar: accept URLs (including data:) up to 255 chars to match the DB column.
-  // This mirrors book/admin validation which accepts image URLs or small data URIs.
-  avatar: Joi.string().uri().max(255).allow(null, "").messages({
-    "string.uri": "avatar must be a valid URL or data URI",
-    "string.max": "avatar is too long (max 255 chars)",
-  }),
+  avatar: Joi.string().uri().max(255).allow(null, ""),
 }).min(1);
 
 // --- Class Implementation ---
 
 class Customer {
-  /** Finds a customer by email for login. */
+  /** * Finds a customer by email. 
+   * Returns role as well for the JWT payload.
+   */
   static async findByEmail(email) {
-    const query =
-      'SELECT customer_id, email, password, "customer" as role FROM CUSTOMER WHERE email = ?';
+    const query = 'SELECT customer_id, email, password, "customer" as role FROM CUSTOMER WHERE email = ?';
     const [rows] = await db.execute(query, [email]);
     return rows[0];
   }
 
-  /** Creates a new customer account (Registration). */
+  /** * Transactional Registration
+   * Ensures User and Cart are created together or not at all.
+   */
   static async create(customerData) {
     const connection = await db.getConnection();
-
     try {
       await connection.beginTransaction();
 
-      // 1️⃣ Hash password
       const hashedPassword = await bcrypt.hash(customerData.password, 10);
 
-      // 2️⃣ Insert customer
       const [result] = await connection.execute(
-        `
-      INSERT INTO CUSTOMER (email, password, firstname, lastname, phone_no, shipping_address)
-      VALUES (?, ?, ?, ?, ?, ?)
-      `,
+        `INSERT INTO CUSTOMER (email, password, firstname, lastname, phone_no, shipping_address)
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           customerData.email,
           hashedPassword,
@@ -74,14 +64,10 @@ class Customer {
 
       const customerId = result.insertId;
 
-      // 3️⃣ Create a cart for this customer
-      await connection.execute(`INSERT INTO CART (customer_id) VALUES (?)`, [
-        customerId,
-      ]);
+      // Automatically initialize cart for new user
+      await connection.execute(`INSERT INTO CART (customer_id) VALUES (?)`, [customerId]);
 
-      // 4️⃣ Commit transaction
       await connection.commit();
-
       return customerId;
     } catch (err) {
       await connection.rollback();
@@ -91,38 +77,28 @@ class Customer {
     }
   }
 
-  /** Finds customer profile details by ID. */
   static async findById(id) {
-    const query =
-      "SELECT customer_id, firstname, lastname, email, phone_no, shipping_address, avatar FROM CUSTOMER WHERE customer_id = ?";
+    const query = "SELECT customer_id, firstname, lastname, email, phone_no, shipping_address, avatar FROM CUSTOMER WHERE customer_id = ?";
     const [rows] = await db.execute(query, [id]);
     return rows[0];
   }
 
-  /** Updates customer profile details. */
+  /** * Dynamic Update
+   * Only updates the fields provided in the request body.
+   */
   static async update(customerId, updateData) {
-    if (updateData.password) {
-      updateData.password = await bcrypt.hash(updateData.password, 10);
+    const data = { ...updateData }; // Clone to avoid mutating original object
+
+    if (data.password) {
+      data.password = await bcrypt.hash(data.password, 10);
     }
 
-    const fields = [];
-    const params = [];
-    for (const key in updateData) {
-      if (updateData[key] !== undefined) {
-        fields.push(`${key} = ?`);
-        params.push(updateData[key]);
-      }
-    }
+    const fields = Object.keys(data).map(key => `${key} = ?`);
+    const params = [...Object.values(data), customerId];
 
-    if (params.length === 0) return;
+    if (fields.length === 0) return;
 
-    params.push(customerId);
-
-    const query = `
-            UPDATE CUSTOMER 
-            SET ${fields.join(", ")} 
-            WHERE customer_id = ?
-        `;
+    const query = `UPDATE CUSTOMER SET ${fields.join(", ")} WHERE customer_id = ?`;
     return db.execute(query, params);
   }
 }

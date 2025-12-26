@@ -106,69 +106,69 @@ const CheckoutPage = () => {
       showError("Please enter your ZIP code.");
       return false;
     }
-    console.log(shippingInfo);
     return true;
   };
 
   const handleCheckout = async () => {
+    // Validate cart
     if (cartItems.length === 0) {
       showError("Your cart is empty.");
       return;
     }
-    console.log(cartItems);
 
+    // Validate forms
     if (!validateCard()) return;
     if (!validateShippingInfo()) return;
+
+    // Check authentication
+    const token = localStorage.getItem("token");
+    if (!token) {
+      showError("Please login to complete checkout");
+      navigate("/login");
+      return;
+    }
 
     setIsProcessing(true);
 
     try {
-      const token = localStorage.getItem("token");
-      const API_BASE_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-
+      // ✅ Call checkout endpoint directly
+      // Your CartContext already synced cart items to the database
+      // The backend will read from cart_item table
       const payload = {
-        // Use ?? null to ensure no 'undefined' reaches the API
-        credit_card: cardNumber.replace(/\s/g, "") ?? null,
-        expiry_date: expiryDate ?? null,
-        cvv: cvv ?? null,
-        card_holder: cardHolder ?? null,
-        shipping_info: {
-          firstName: shippingInfo.firstName ?? null,
-          lastName: shippingInfo.lastName ?? null,
-          email: shippingInfo.email ?? null,
-          phone: shippingInfo.phone ?? null,
-          streetAddress: shippingInfo.streetAddress ?? null,
-          city: shippingInfo.city ?? null,
-          state: shippingInfo.state ?? null,
-          zipCode: shippingInfo.zipCode ?? null,
-          country: shippingInfo.country ?? null,
-        },
-        // Check these property names carefully!
-        items: cartItems.map((item) => ({
-          book_id: item.ISBN,
-          quantity: item.Buying_quantity,
-          price: item.sellingPrice,
-        })),
+        credit_card: cardNumber.replace(/\s/g, ""),
+        expiry_date: expiryDate,
+        cvv: cvv,
+        card_holder: cardHolder,
+        shipping_info: shippingInfo,
       };
 
       const response = await axios.post(
-        `${API_BASE_URL}/orders/checkout`,
+        "http://localhost:3000/api/orders/checkout",
         payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      setOrderNumber(response.data.orderId || `ORD-${Date.now()}`);
+      // Success! Show success state
       setIsSuccess(true);
-      showSuccess(response.data.message || "Order placed successfully!");
+      setOrderNumber(response.data.orderId?.toString() || `ORD-${Date.now()}`);
+      
+      // Clear frontend cart
       clearCart();
+      
+      showSuccess(response.data.message || "Order placed successfully!");
+      console.log("✅ Order completed:", response.data);
+
     } catch (err: any) {
-      if (err.response?.data?.message) {
-        showError(err.response.data.message);
-      } else {
-        showError("Checkout failed. Please try again.");
+      console.error("Checkout Error:", err.response?.data || err.message);
+      
+      const errorMessage = err.response?.data?.message || "Checkout failed. Please try again.";
+      showError(errorMessage);
+      
+      // Handle specific error cases
+      if (errorMessage.toLowerCase().includes("cart")) {
+        showError("Your cart may be out of sync. Please refresh and try again.");
+      } else if (errorMessage.toLowerCase().includes("stock")) {
+        showError("Some items are out of stock. Please review your cart.");
       }
     } finally {
       setIsProcessing(false);
@@ -420,7 +420,13 @@ const CheckoutPage = () => {
                         <option value="NY">New York</option>
                         <option value="CA">California</option>
                         <option value="TX">Texas</option>
-                        {/* Add more states as needed */}
+                        <option value="FL">Florida</option>
+                        <option value="IL">Illinois</option>
+                        <option value="PA">Pennsylvania</option>
+                        <option value="OH">Ohio</option>
+                        <option value="GA">Georgia</option>
+                        <option value="NC">North Carolina</option>
+                        <option value="MI">Michigan</option>
                       </select>
                     </div>
                   </div>
@@ -435,6 +441,7 @@ const CheckoutPage = () => {
                         onChange={handleShippingChange}
                         className="form-input"
                         placeholder="10001"
+                        maxLength={5}
                       />
                     </div>
                     <div className="form-group">

@@ -2,19 +2,22 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "axios";
 import { useToast } from "./ToastContext";
 
+axios.defaults.baseURL = "http://localhost:3000";
+
 export interface CartItem {
   ISBN: string;
   Title: string;
   sellingPrice: number;
   Buying_quantity: number;
   avatar?: string;
-  author: string; // ✅ ADD THIS LINE
+  author: string;
 }
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (item: CartItem) => Promise<void>; // now persists to server when user is authenticated
-  updateQuantity: (isbn: string, quantity: number) => Promise<void>;
+  fetchCart: () => Promise<void>;
+  addToCart: (item: CartItem) => Promise<void>;
+  updateQuantity: (isbn: string, newQuantity: number) => Promise<void>;
   removeFromCart: (isbn: string) => Promise<void>;
   clearCart: () => void;
   getCartCount: () => number;
@@ -23,175 +26,207 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// LocalStorage key for cart items
-const CART_STORAGE_KEY = "bookstore_cart_items";
-
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  // Initialize cart from localStorage
-  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    try {
-      const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-      if (savedCart) {
-        const parsed = JSON.parse(savedCart);
-        console.log("📦 Cart loaded from localStorage:", parsed);
-        return parsed;
-      }
-    } catch (error) {
-      console.error("Error loading cart from localStorage:", error);
-    }
-    return [];
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const { showError, showSuccess } = useToast();
+
+  // Auth helper
+  const authHeader = () => ({
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
   });
 
-  // Save cart to localStorage whenever it changes
+  // Check if user is authenticated
+  const isAuthenticated = () => !!localStorage.getItem("token");
+
+  // Fetch cart on mount if user is logged in
   useEffect(() => {
-    try {
-      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
-      console.log("💾 Cart saved to localStorage:", cartItems);
-    } catch (error) {
-      console.error("Error saving cart to localStorage:", error);
+    if (isAuthenticated()) {
+      fetchCart();
     }
-  }, [cartItems]);
+  }, []);
 
-  // 🔹 ADD TO CART - Now persists to backend cart for authenticated users
-  const { showError } = useToast();
+  /* ================= FETCH CART FROM SERVER ================= */
+  const fetchCart = async () => {
+    if (!isAuthenticated()) return;
 
+    try {
+      const res = await axios.get("/api/cart", authHeader());
+      setCartItems(res.data.items || []);
+      console.log("📥 Cart fetched from server:", res.data.items);
+    } catch (err: any) {
+      console.error("Fetch cart error:", err);
+      if (err.response?.status !== 401) {
+        showError("Failed to load cart");
+      }
+    }
+  };
+
+  /* ================= ADD TO CART ================= */
   const addToCart = async (item: CartItem) => {
-    console.log("🔵 addToCart function called");
-    console.log("🔵 Item to add:", item);
-    console.log("🔵 Current cart items:", cartItems);
+    console.log("🔵 addToCart called with:", item);
 
-    // Update local state first for snappy UI
+    // Validate ISBN
+    const normalizedIsbn = String(item.ISBN).trim();
+    if (normalizedIsbn.length !== 13) {
+      showError("Invalid ISBN format");
+      console.error("ISBN must be 13 characters:", normalizedIsbn);
+      return;
+    }
+
+    // Optimistic update for better UX
     setCartItems((prev) => {
-      console.log("🔵 Previous cart state:", prev);
-      const existing = prev.find((p) => p.ISBN === item.ISBN);
-
+      const existing = prev.find((p) => p.ISBN === normalizedIsbn);
       if (existing) {
-        console.log("🟢 Item exists, adding quantity:", item.Buying_quantity);
-        const updated = prev.map((p) =>
-          p.ISBN === item.ISBN
+        return prev.map((p) =>
+          p.ISBN === normalizedIsbn
             ? {
                 ...p,
                 Buying_quantity: p.Buying_quantity + item.Buying_quantity,
               }
             : p
         );
-        console.log("🟢 Updated cart:", updated);
-        return updated;
       }
-
-      console.log("🟡 Adding new item with quantity:", item.Buying_quantity);
-      const newCart = [...prev, item];
-      console.log("🟡 New cart:", newCart);
-      return newCart;
+      return [...prev, { ...item, ISBN: normalizedIsbn }];
     });
 
-    // If user is authenticated, persist to server-side cart table
-    const token = localStorage.getItem("token");
-    if (!token) {
-      // Not authenticated - keep local only
+    // Persist to server if authenticated
+    if (!isAuthenticated()) {
+      showError("Please login to add items to cart");
+      // Revert optimistic update
+      setCartItems((prev) => prev.filter((p) => p.ISBN !== normalizedIsbn));
       return;
     }
 
     try {
-      const API_BASE_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:3000/api";
       await axios.post(
-        `${API_BASE_URL}/cart`,
-        { isbn: item.ISBN, quantity: item.Buying_quantity },
-        { headers: { Authorization: `Bearer ${token}` } }
+        "/api/cart",
+        { isbn: normalizedIsbn, quantity: item.Buying_quantity },
+        authHeader()
       );
+      
+      // Refresh cart to get accurate data from server
+      await fetchCart();
+      showSuccess("Added to cart");
+      console.log("✅ Item added to cart successfully");
     } catch (err: any) {
-      console.error("Failed to persist cart item to server:", err);
-      // Don't revert local state; just notify user
-      showError(err?.response?.data || "Could not save cart to server");
+      console.error("Add to cart error:", err);
+      showError(err.response?.data?.message || "Failed to add to cart");
+      // Revert optimistic update on error
+      await fetchCart();
     }
   };
 
-  // 🔹 Update quantity (set to exact amount) and persist when possible
-  const updateQuantity = async (ISBN: string, newQty: number) => {
-    if (newQty <= 0) {
-      await removeFromCart(ISBN);
+  /* ================= UPDATE QUANTITY ================= */
+  const updateQuantity = async (isbn: string, newQuantity: number) => {
+    console.log(`🔢 updateQuantity: ISBN=${isbn}, newQty=${newQuantity}`);
+
+    // Validate ISBN
+    const normalizedIsbn = String(isbn).trim();
+    if (normalizedIsbn.length !== 13) {
+      showError("Invalid ISBN format");
       return;
     }
 
-    // Find existing quantity
-    const existing = cartItems.find((i) => i.ISBN === ISBN);
-    const oldQty = existing ? existing.Buying_quantity : 0;
-    const delta = newQty - oldQty;
+    // Handle removal
+    if (newQuantity <= 0) {
+      await removeFromCart(normalizedIsbn);
+      return;
+    }
 
-    // Update local state immediately
+    if (!isAuthenticated()) {
+      showError("Please login to update cart");
+      return;
+    }
+
+    // Get current quantity
+    const currentItem = cartItems.find((item) => item.ISBN === normalizedIsbn);
+    if (!currentItem) {
+      console.error("Item not found in cart");
+      return;
+    }
+
+    const oldQuantity = currentItem.Buying_quantity;
+    const delta = newQuantity - oldQuantity;
+
+    // Optimistic update
     setCartItems((prev) =>
       prev.map((item) =>
-        item.ISBN === ISBN ? { ...item, Buying_quantity: newQty } : item
+        item.ISBN === normalizedIsbn
+          ? { ...item, Buying_quantity: newQuantity }
+          : item
       )
     );
 
-    // Persist change if authenticated
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     try {
-      const API_BASE_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:3000/api";
       if (delta > 0) {
-        // Add the difference
+        // Increment: add the difference
         await axios.post(
-          `${API_BASE_URL}/cart`,
-          { isbn: ISBN, quantity: delta },
-          { headers: { Authorization: `Bearer ${token}` } }
+          "/api/cart",
+          { isbn: normalizedIsbn, quantity: delta },
+          authHeader()
         );
       } else if (delta < 0) {
-        // Need to decrement - call delete with decrementOnly=true multiple times
-        const times = Math.abs(delta);
-        for (let i = 0; i < times; i++) {
+        // Decrement: remove one at a time using decrementOnly flag
+        const decrementCount = Math.abs(delta);
+        for (let i = 0; i < decrementCount; i++) {
           await axios.delete(
-            `${API_BASE_URL}/cart/${ISBN}?decrementOnly=true`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
+            `/api/cart/${normalizedIsbn}?decrementOnly=true`,
+            authHeader()
           );
         }
       }
-    } catch (err: any) {
-      console.error("Failed to persist quantity update to server:", err);
-    }
 
-    console.log("🔢 Quantity updated for ISBN:", ISBN, "New qty:", newQty);
+      // Refresh to ensure consistency
+      await fetchCart();
+      console.log(`✅ Quantity updated: ${oldQuantity} → ${newQuantity}`);
+    } catch (err: any) {
+      console.error("Update quantity error:", err);
+      showError(err.response?.data?.message || "Failed to update quantity");
+      // Revert on error
+      await fetchCart();
+    }
   };
 
-  // 🔹 Remove item completely and persist when authenticated
-  const removeFromCart = async (ISBN: string) => {
-    setCartItems((prev) => prev.filter((item) => item.ISBN !== ISBN));
-    console.log("❌ Item removed from cart:", ISBN);
+  /* ================= REMOVE ITEM ================= */
+  const removeFromCart = async (isbn: string) => {
+    console.log(`❌ removeFromCart: ISBN=${isbn}`);
 
-    const token = localStorage.getItem("token");
-    if (!token) return;
+    const normalizedIsbn = String(isbn).trim();
+
+    // Optimistic update
+    setCartItems((prev) => prev.filter((item) => item.ISBN !== normalizedIsbn));
+
+    if (!isAuthenticated()) {
+      return;
+    }
 
     try {
-      const API_BASE_URL =
-        import.meta.env.VITE_API_URL || "http://localhost:3000/api";
-      await axios.delete(`${API_BASE_URL}/cart/${ISBN}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Delete entire item (no query parameter)
+      await axios.delete(`/api/cart/${normalizedIsbn}`, authHeader());
+      console.log("✅ Item removed from cart");
+      showSuccess("Item removed from cart");
     } catch (err: any) {
-      console.error("Failed to remove item from server cart:", err);
+      console.error("Remove from cart error:", err);
+      showError(err.response?.data?.message || "Failed to remove item");
+      // Revert on error
+      await fetchCart();
     }
   };
 
-  // 🔹 Clear entire cart
+  /* ================= CLEAR CART ================= */
   const clearCart = () => {
     setCartItems([]);
-    localStorage.removeItem(CART_STORAGE_KEY);
-    console.log("🗑️ Cart cleared");
+    console.log("🗑️ Cart cleared (frontend only)");
   };
 
-  // 🔹 Get total item count
+  /* ================= HELPER FUNCTIONS ================= */
   const getCartCount = () =>
     cartItems.reduce((sum, item) => sum + item.Buying_quantity, 0);
 
-  // 🔹 Get total price
   const getCartTotal = () =>
     cartItems.reduce(
       (sum, item) => sum + item.sellingPrice * item.Buying_quantity,
@@ -202,6 +237,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     <CartContext.Provider
       value={{
         cartItems,
+        fetchCart,
         addToCart,
         updateQuantity,
         removeFromCart,

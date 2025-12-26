@@ -25,7 +25,6 @@ export const AllBooksPage: React.FC<AllBooksPageProps> = ({
 }) => {
   const location = useLocation();
   const { addToCart } = useCart();
-
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -37,6 +36,7 @@ export const AllBooksPage: React.FC<AllBooksPageProps> = ({
         const data = await response.json();
         setBooks(data);
 
+        // Check for category query parameter
         const params = new URLSearchParams(location.search);
         const category = params.get('category');
         if (category) {
@@ -56,13 +56,16 @@ export const AllBooksPage: React.FC<AllBooksPageProps> = ({
     if (onBookClick) {
       onBookClick(isbn);
     } else {
+      // Default navigation if no prop provided
       window.location.href = `/book/${isbn}`;
     }
   };
 
   const handleAddToCart = (book: Book, e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     
+    // Construct the CartItem object expected by your Context
     addToCart({
       ISBN: book.ISBN,
       Title: book.Title,
@@ -72,6 +75,7 @@ export const AllBooksPage: React.FC<AllBooksPageProps> = ({
       author: book.authors,
     });
 
+    // Open cart sidebar if function exists
     if (onCartOpen) {
       onCartOpen();
     }
@@ -83,9 +87,7 @@ export const AllBooksPage: React.FC<AllBooksPageProps> = ({
     const hasHalfStar = rating % 1 !== 0;
 
     for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <span key={`full-${i}`} className="star filled">★</span>
-      );
+      stars.push(<span key={`full-${i}`} className="star filled">★</span>);
     }
 
     if (hasHalfStar) {
@@ -107,9 +109,7 @@ export const AllBooksPage: React.FC<AllBooksPageProps> = ({
 
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
-      stars.push(
-        <span key={`empty-${i}`} className="star empty">★</span>
-      );
+      stars.push(<span key={`empty-${i}`} className="star empty">★</span>);
     }
 
     return stars;
@@ -117,10 +117,9 @@ export const AllBooksPage: React.FC<AllBooksPageProps> = ({
 
   const isHot = (rating: number) => rating >= 4.5;
 
-  const filteredBooks =
-    filter === 'all'
-      ? books
-      : books.filter(book => book.Category === filter);
+  const filteredBooks = filter === 'all'
+    ? books
+    : books.filter(book => book.Category === filter);
 
   if (loading) {
     return <div className="all-books-page">Loading...</div>;
