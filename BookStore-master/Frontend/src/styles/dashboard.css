@@ -357,14 +357,34 @@
           color: #dc2626;
         }
 
-        /* ====== CARDS ====== */
-        .card {
-          background: white;
-          padding: 24px;
-          border-radius: 12px;
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-          border-left: 4px solid transparent;
-        }
+/* accept button style */
+.action-btn.accept {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #10b981;
+  color: white;
+  border: none;
+}
+
+.action-btn.accept:hover {
+  background: #059669;
+}
+
+/* Small link-style button used for table elements like clickable order IDs */
+.link-btn {
+  background: none;
+  border: none;
+  color: #065f46;
+  text-decoration: underline;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 0;
+}
+
+.link-btn:hover {
+  color: #0f766e;
+}
 
         .card-red {
           border-left-color: #ef4444;
@@ -486,15 +506,26 @@
   gap: 12px;
 }
 
-.modal-form input {
+.modal-form input,
+.modal-form select,
+.modal-form .modal-category-select {
   padding: 10px;
   border: 2px solid #e5e7eb;
   border-radius: 8px;
 }
 
-.modal-form input:focus {
+.modal-form input:focus,
+.modal-form select:focus,
+.modal-form .modal-category-select:focus {
   border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 146, 60, 0.15);
   outline: none;
+}
+
+/* make select stretch full width like inputs */
+.modal-form select,
+.modal-form .modal-category-select {
+  width: 100%;
 }
 
 /* ====== ACTION BUTTONS ====== */
@@ -505,21 +536,26 @@
   margin-top: 12px;
 }
 
-.cancel-btn {
+/* ensure both buttons are equal in width and content centered */
+.modal-actions button {
+  min-width: 140px;
   padding: 8px 14px;
-  background: #e5e7eb;
-  border: none;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
   border-radius: 8px;
   cursor: pointer;
 }
 
+.cancel-btn {
+  background: #e5e7eb;
+  border: none;
+}
+
 .submit-btn {
-  padding: 8px 14px;
   background: #f97316;
   color: white;
   border: none;
-  border-radius: 8px;
-  cursor: pointer;
 }
 
 .submit-btn:hover {

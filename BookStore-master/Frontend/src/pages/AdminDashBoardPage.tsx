@@ -94,8 +94,9 @@ const AdminDashboard = () => {
     <div className="dashboard-root">
       {/* Sidebar */}
       <aside
-        className={`sidebar ${sidebarOpen ? "sidebar-expanded" : "sidebar-collapsed"
-          }`}
+        className={`sidebar ${
+          sidebarOpen ? "sidebar-expanded" : "sidebar-collapsed"
+        }`}
       >
         {/* Logo & Toggle */}
         <div className="sidebar-header">
@@ -222,7 +223,7 @@ const BooksManagement = () => {
     year: "",
     stock: "",
     threshold: "",
-    category: "Science",
+    category: "",
     price: "",
     publisher_id: "",
     author_ids: "", // comma-separated list for convenience
@@ -325,7 +326,7 @@ const BooksManagement = () => {
       year: "",
       stock: "",
       threshold: "",
-      category: "Science",
+      category: "",
       price: "",
       publisher_id: "",
       author_ids: "",
@@ -345,7 +346,7 @@ const BooksManagement = () => {
       year: (book as any).Publication_year || "",
       stock: String(book.stock || ""),
       threshold: String((book as any).threshold || ""),
-      category: book.category || "Science",
+      category: book.category || "",
       price: String(book.price || ""),
       publisher_id: String((book as any).Publisher_id || ""),
       author_ids: "",
@@ -398,10 +399,10 @@ const BooksManagement = () => {
         : undefined,
       author_ids: newBook.author_ids
         ? newBook.author_ids
-          .split(",")
-          .map((id: string) => id.trim())
-          .filter(Boolean)
-          .map((id: string) => Number(id))
+            .split(",")
+            .map((id: string) => id.trim())
+            .filter(Boolean)
+            .map((id: string) => Number(id))
         : undefined,
       avatar: newBook.avatar || undefined,
       rating:
@@ -410,7 +411,7 @@ const BooksManagement = () => {
           : undefined,
       rating_count:
         typeof newBook.rating_count !== "undefined" &&
-          newBook.rating_count !== ""
+        newBook.rating_count !== ""
           ? Number(newBook.rating_count)
           : undefined,
     };
@@ -530,17 +531,18 @@ const BooksManagement = () => {
               <input
                 name="threshold"
                 type="number"
-                placeholder="Threshold"
+                placeholder="Threshold (optional)"
                 value={newBook.threshold}
                 onChange={handleChange}
-                required
               />
               <select
                 name="category"
                 value={newBook.category}
                 onChange={handleChange}
                 required
+                className="modal-category-select"
               >
+                <option value="">Select category</option>
                 <option value="Science">Science</option>
                 <option value="Art">Art</option>
                 <option value="Religion">Religion</option>
@@ -760,7 +762,7 @@ const BooksManagement = () => {
                     <td>${book.price}</td>
                     <td>
                       {typeof book.rating !== "undefined" &&
-                        book.rating !== null
+                      book.rating !== null
                         ? `${book.rating} (${book.rating_count ?? 0})`
                         : "—"}
                     </td>
@@ -793,7 +795,11 @@ const BooksManagement = () => {
 
 // Stock Management Component
 const StockManagement = () => {
-  const [stats, setStats] = useState({ lowStock: 0, outOfStock: 0, totalBooks: 0 });
+  const [stats, setStats] = useState({
+    lowStock: 0,
+    outOfStock: 0,
+    totalBooks: 0,
+  });
   const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [orderingIsbn, setOrderingIsbn] = useState<string | null>(null);
@@ -861,7 +867,11 @@ const StockManagement = () => {
   };
 
   if (loading) {
-    return <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>Loading stock data...</div>;
+    return (
+      <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>
+        Loading stock data...
+      </div>
+    );
   }
 
   return (
@@ -917,7 +927,9 @@ const StockManagement = () => {
       </div>
 
       <div className="card" style={{ borderLeft: "none" }}>
-        <h3 className="card-title" style={{ marginBottom: "16px" }}>Books Requiring Attention</h3>
+        <h3 className="card-title" style={{ marginBottom: "16px" }}>
+          Books Requiring Attention
+        </h3>
         {alerts.length === 0 ? (
           <p className="card-subtitle">All books are sufficiently stocked!</p>
         ) : (
@@ -936,12 +948,16 @@ const StockManagement = () => {
             <tbody>
               {alerts.map((book) => (
                 <tr key={book.ISBN}>
-                  <td style={{ fontFamily: "monospace", fontSize: "12px" }}>{book.ISBN}</td>
+                  <td style={{ fontFamily: "monospace", fontSize: "12px" }}>
+                    {book.ISBN}
+                  </td>
                   <td>{book.Title}</td>
-                  <td style={{
-                    fontWeight: "bold",
-                    color: book.stock_quantity === 0 ? "#dc2626" : "#ea580c"
-                  }}>
+                  <td
+                    style={{
+                      fontWeight: "bold",
+                      color: book.stock_quantity === 0 ? "#dc2626" : "#ea580c",
+                    }}
+                  >
                     {book.stock_quantity}
                   </td>
                   <td>{book.threshold}</td>
@@ -952,8 +968,14 @@ const StockManagement = () => {
                         borderRadius: "12px",
                         fontSize: "12px",
                         fontWeight: "500",
-                        backgroundColor: book.alert_type === "Out of Stock" ? "#fee2e2" : "#ffedd5",
-                        color: book.alert_type === "Out of Stock" ? "#dc2626" : "#ea580c",
+                        backgroundColor:
+                          book.alert_type === "Out of Stock"
+                            ? "#fee2e2"
+                            : "#ffedd5",
+                        color:
+                          book.alert_type === "Out of Stock"
+                            ? "#dc2626"
+                            : "#ea580c",
                       }}
                     >
                       {book.alert_type}
@@ -963,7 +985,9 @@ const StockManagement = () => {
                   <td>
                     <button
                       onClick={() => handlePlaceOrder(book.ISBN)}
-                      disabled={orderingIsbn === book.ISBN || !book.Publisher_id}
+                      disabled={
+                        orderingIsbn === book.ISBN || !book.Publisher_id
+                      }
                       style={{
                         padding: "6px 12px",
                         backgroundColor: "#2563eb",
@@ -1018,14 +1042,18 @@ const PublisherOrders = () => {
   }, []);
 
   const handleConfirmReceipt = async (orderPubId: number) => {
-    if (!confirm("Confirm receipt of this order? This will update book stock.")) return;
+    if (!confirm("Confirm receipt of this order? This will update book stock."))
+      return;
 
     setConfirmingId(orderPubId);
     try {
-      const res = await fetch(`${API_URL}/admin/replenishment/${orderPubId}/confirm`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `${API_URL}/admin/replenishment/${orderPubId}/confirm`,
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (res.ok) {
         alert("Order confirmed and stock updated!");
@@ -1044,23 +1072,35 @@ const PublisherOrders = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Pending": return { bg: "#fef3c7", color: "#d97706" };
-      case "Received": return { bg: "#d1fae5", color: "#059669" };
-      case "Shipped": return { bg: "#dbeafe", color: "#2563eb" };
-      case "Cancelled": return { bg: "#fee2e2", color: "#dc2626" };
-      default: return { bg: "#f3f4f6", color: "#6b7280" };
+      case "Pending":
+        return { bg: "#fef3c7", color: "#d97706" };
+      case "Received":
+        return { bg: "#d1fae5", color: "#059669" };
+      case "Shipped":
+        return { bg: "#dbeafe", color: "#2563eb" };
+      case "Cancelled":
+        return { bg: "#fee2e2", color: "#dc2626" };
+      default:
+        return { bg: "#f3f4f6", color: "#6b7280" };
     }
   };
 
   if (loading) {
-    return <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>Loading orders...</div>;
+    return (
+      <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>
+        Loading orders...
+      </div>
+    );
   }
 
   return (
     <div className="flex-column gap-4">
       <div className="flex gap-4" style={{ flexWrap: "wrap" }}>
         <div className="card card-yellow" style={{ flex: "1 1 220px" }}>
-          <div className="flex" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <div
+            className="flex"
+            style={{ justifyContent: "space-between", alignItems: "center" }}
+          >
             <div>
               <h3 className="card-title">Pending Orders</h3>
               <p className="card-number" style={{ color: "#d97706" }}>
@@ -1073,7 +1113,10 @@ const PublisherOrders = () => {
         </div>
 
         <div className="card card-green" style={{ flex: "1 1 220px" }}>
-          <div className="flex" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <div
+            className="flex"
+            style={{ justifyContent: "space-between", alignItems: "center" }}
+          >
             <div>
               <h3 className="card-title">Received Orders</h3>
               <p className="card-number" style={{ color: "#059669" }}>
@@ -1086,7 +1129,10 @@ const PublisherOrders = () => {
         </div>
 
         <div className="card" style={{ flex: "1 1 220px", borderLeft: "none" }}>
-          <div className="flex" style={{ justifyContent: "space-between", alignItems: "center" }}>
+          <div
+            className="flex"
+            style={{ justifyContent: "space-between", alignItems: "center" }}
+          >
             <div>
               <h3 className="card-title">Total Orders</h3>
               <p className="card-number" style={{ color: "#374151" }}>
@@ -1100,7 +1146,9 @@ const PublisherOrders = () => {
       </div>
 
       <div className="card" style={{ borderLeft: "none" }}>
-        <h3 className="card-title" style={{ marginBottom: "16px" }}>Publisher Orders</h3>
+        <h3 className="card-title" style={{ marginBottom: "16px" }}>
+          Publisher Orders
+        </h3>
         {orders.length === 0 ? (
           <p className="card-subtitle">No publisher orders yet.</p>
         ) : (
@@ -1123,7 +1171,13 @@ const PublisherOrders = () => {
                   <tr key={order.order_pub_id}>
                     <td>#{order.order_pub_id}</td>
                     <td>{order.publisher_name}</td>
-                    <td style={{ maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <td
+                      style={{
+                        maxWidth: "200px",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
                       {order.books || "N/A"}
                     </td>
                     <td>{order.constant_quantity}</td>
@@ -1145,7 +1199,9 @@ const PublisherOrders = () => {
                     <td>
                       {order.status === "Pending" && (
                         <button
-                          onClick={() => handleConfirmReceipt(order.order_pub_id)}
+                          onClick={() =>
+                            handleConfirmReceipt(order.order_pub_id)
+                          }
                           disabled={confirmingId === order.order_pub_id}
                           style={{
                             padding: "6px 12px",
@@ -1154,11 +1210,14 @@ const PublisherOrders = () => {
                             border: "none",
                             borderRadius: "6px",
                             cursor: "pointer",
-                            opacity: confirmingId === order.order_pub_id ? 0.5 : 1,
+                            opacity:
+                              confirmingId === order.order_pub_id ? 0.5 : 1,
                             fontSize: "12px",
                           }}
                         >
-                          {confirmingId === order.order_pub_id ? "Confirming..." : "Confirm Receipt"}
+                          {confirmingId === order.order_pub_id
+                            ? "Confirming..."
+                            : "Confirm Receipt"}
                         </button>
                       )}
                     </td>
@@ -1195,7 +1254,9 @@ const Reports = () => {
     setLoading(true);
     setError(null);
     try {
-      const url = params ? `${API_URL}${endpoint}?${params}` : `${API_URL}${endpoint}`;
+      const url = params
+        ? `${API_URL}${endpoint}?${params}`
+        : `${API_URL}${endpoint}`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -1221,7 +1282,10 @@ const Reports = () => {
       return;
     }
     setActiveReport("daily");
-    const data = await fetchReport("/reports/sales/day", `date=${selectedDate}`);
+    const data = await fetchReport(
+      "/reports/sales/day",
+      `date=${selectedDate}`
+    );
     if (data) setDailySales(data.daily_sales || 0);
   };
 
@@ -1243,7 +1307,9 @@ const Reports = () => {
       return;
     }
     setActiveReport("replenishment");
-    const data = await fetchReport(`/reports/books/replenishment/${searchIsbn}`);
+    const data = await fetchReport(
+      `/reports/books/replenishment/${searchIsbn}`
+    );
     if (data) setReplenishmentData(data);
   };
 
@@ -1359,16 +1425,25 @@ const Reports = () => {
 
       {/* Loading State */}
       {loading && (
-        <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>
+        <div
+          className="card"
+          style={{ borderLeft: "none", textAlign: "center" }}
+        >
           <p>Loading report...</p>
         </div>
       )}
 
       {/* Report Results */}
       {!loading && activeReport === "lastMonth" && lastMonthSales !== null && (
-        <div className="card card-green" style={{ borderLeft: "4px solid #16a34a" }}>
+        <div
+          className="card card-green"
+          style={{ borderLeft: "4px solid #16a34a" }}
+        >
           <h3 className="card-title">Last Month Sales</h3>
-          <p className="card-number" style={{ color: "#16a34a", fontSize: "36px" }}>
+          <p
+            className="card-number"
+            style={{ color: "#16a34a", fontSize: "36px" }}
+          >
             ${lastMonthSales.toFixed(2)}
           </p>
           <p className="card-subtitle">Total revenue from previous month</p>
@@ -1376,54 +1451,71 @@ const Reports = () => {
       )}
 
       {!loading && activeReport === "daily" && dailySales !== null && (
-        <div className="card card-blue" style={{ borderLeft: "4px solid #2563eb" }}>
+        <div
+          className="card card-blue"
+          style={{ borderLeft: "4px solid #2563eb" }}
+        >
           <h3 className="card-title">Sales on {selectedDate}</h3>
-          <p className="card-number" style={{ color: "#2563eb", fontSize: "36px" }}>
+          <p
+            className="card-number"
+            style={{ color: "#2563eb", fontSize: "36px" }}
+          >
             ${dailySales.toFixed(2)}
           </p>
           <p className="card-subtitle">Total revenue for selected day</p>
         </div>
       )}
 
-      {!loading && activeReport === "topCustomers" && topCustomers.length > 0 && (
-        <div className="card" style={{ borderLeft: "none" }}>
-          <h3 className="card-title" style={{ marginBottom: "16px" }}>
-            Top 5 Customers (Last 3 Months)
-          </h3>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Customer Name</th>
-                <th>Total Spent</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topCustomers.map((customer, index) => (
-                <tr key={index}>
-                  <td>
-                    <span
-                      style={{
-                        backgroundColor: index === 0 ? "#fbbf24" : index === 1 ? "#9ca3af" : index === 2 ? "#cd7f32" : "#e5e7eb",
-                        color: index < 3 ? "#fff" : "#374151",
-                        padding: "4px 10px",
-                        borderRadius: "50%",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {index + 1}
-                    </span>
-                  </td>
-                  <td>{customer.firstname} {customer.lastname}</td>
-                  <td style={{ fontWeight: "600", color: "#16a34a" }}>
-                    ${parseFloat(customer.total_spent).toFixed(2)}
-                  </td>
+      {!loading &&
+        activeReport === "topCustomers" &&
+        topCustomers.length > 0 && (
+          <div className="card" style={{ borderLeft: "none" }}>
+            <h3 className="card-title" style={{ marginBottom: "16px" }}>
+              Top 5 Customers (Last 3 Months)
+            </h3>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Customer Name</th>
+                  <th>Total Spent</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {topCustomers.map((customer, index) => (
+                  <tr key={index}>
+                    <td>
+                      <span
+                        style={{
+                          backgroundColor:
+                            index === 0
+                              ? "#fbbf24"
+                              : index === 1
+                              ? "#9ca3af"
+                              : index === 2
+                              ? "#cd7f32"
+                              : "#e5e7eb",
+                          color: index < 3 ? "#fff" : "#374151",
+                          padding: "4px 10px",
+                          borderRadius: "50%",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {index + 1}
+                      </span>
+                    </td>
+                    <td>
+                      {customer.firstname} {customer.lastname}
+                    </td>
+                    <td style={{ fontWeight: "600", color: "#16a34a" }}>
+                      ${parseFloat(customer.total_spent).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
       {!loading && activeReport === "topBooks" && topBooks.length > 0 && (
         <div className="card" style={{ borderLeft: "none" }}>
@@ -1444,7 +1536,14 @@ const Reports = () => {
                   <td>
                     <span
                       style={{
-                        backgroundColor: index === 0 ? "#fbbf24" : index === 1 ? "#9ca3af" : index === 2 ? "#cd7f32" : "#e5e7eb",
+                        backgroundColor:
+                          index === 0
+                            ? "#fbbf24"
+                            : index === 1
+                            ? "#9ca3af"
+                            : index === 2
+                            ? "#cd7f32"
+                            : "#e5e7eb",
                         color: index < 3 ? "#fff" : "#374151",
                         padding: "4px 10px",
                         borderRadius: "50%",
@@ -1466,24 +1565,42 @@ const Reports = () => {
       )}
 
       {!loading && activeReport === "replenishment" && replenishmentData && (
-        <div className="card card-orange" style={{ borderLeft: "4px solid #ea580c" }}>
+        <div
+          className="card card-orange"
+          style={{ borderLeft: "4px solid #ea580c" }}
+        >
           <h3 className="card-title">{replenishmentData.Title || "Book"}</h3>
-          <p className="card-number" style={{ color: "#ea580c", fontSize: "36px" }}>
+          <p
+            className="card-number"
+            style={{ color: "#ea580c", fontSize: "36px" }}
+          >
             {replenishmentData.times_replenished || 0}
           </p>
           <p className="card-subtitle">Times this book has been replenished</p>
         </div>
       )}
 
-      {!loading && activeReport === "topCustomers" && topCustomers.length === 0 && (
-        <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>
-          <p className="card-subtitle">No customer data available for the last 3 months</p>
-        </div>
-      )}
+      {!loading &&
+        activeReport === "topCustomers" &&
+        topCustomers.length === 0 && (
+          <div
+            className="card"
+            style={{ borderLeft: "none", textAlign: "center" }}
+          >
+            <p className="card-subtitle">
+              No customer data available for the last 3 months
+            </p>
+          </div>
+        )}
 
       {!loading && activeReport === "topBooks" && topBooks.length === 0 && (
-        <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>
-          <p className="card-subtitle">No book sales data available for the last 3 months</p>
+        <div
+          className="card"
+          style={{ borderLeft: "none", textAlign: "center" }}
+        >
+          <p className="card-subtitle">
+            No book sales data available for the last 3 months
+          </p>
         </div>
       )}
     </div>
@@ -1492,13 +1609,197 @@ const Reports = () => {
 
 // Customers Component
 const Customers = () => {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<any[]>([]);
+  const [showDetails, setShowDetails] = useState(false);
+  const token = localStorage.getItem("token");
+
+  const API = "http://localhost:3000/api";
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      if (!token) {
+        setLoading(false);
+        alert("Missing admin auth token — please login as admin.");
+        return;
+      }
+
+      const res = await fetch(`${API}/admin/orders/customers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error("Server returned error fetching customer orders:", txt);
+        throw new Error(txt || "Server error");
+      }
+      const data = await res.json();
+      setOrders(data);
+    } catch (err: any) {
+      console.error("Failed to fetch customer orders:", err);
+      alert(`Failed to fetch customer orders: ${err.message || err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const viewOrder = async (orderId: number) => {
+    try {
+      if (!token)
+        return alert("Missing admin auth token — please login as admin.");
+      const res = await fetch(`${API}/admin/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error("Server error getting order details:", txt);
+        throw new Error(txt || "Server error");
+      }
+      const data = await res.json();
+      setSelectedOrder(data);
+      setShowDetails(true);
+    } catch (err: any) {
+      console.error("Failed to get order details:", err);
+      alert(`Failed to get order details: ${err.message || err}`);
+    }
+  };
+
+  const acceptOrder = async (orderId: number) => {
+    if (!confirm(`Accept order ${orderId}?`)) return;
+    try {
+      if (!token)
+        return alert("Missing admin auth token — please login as admin.");
+      const res = await fetch(`${API}/admin/orders/${orderId}/accept`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        console.error("Server error accepting order:", txt);
+        throw new Error(txt || "Server error");
+      }
+      alert(`Order ${orderId} accepted.`);
+      fetchOrders();
+    } catch (err: any) {
+      console.error("Accept failed:", err);
+      alert(`Failed to accept order: ${err.message || err}`);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
   return (
     <div className="flex-column gap-4">
       <div className="card" style={{ borderLeft: "none" }}>
-        <h3 className="card-title">Customer Management</h3>
-        <p className="card-subtitle">
-          Customer list and details will appear here...
-        </p>
+        <h3 className="card-title">Customer Orders</h3>
+        <p className="card-subtitle">List of orders placed by customers</p>
+
+        {loading ? (
+          <p style={{ marginTop: 12 }}>Loading orders...</p>
+        ) : (
+          <div style={{ marginTop: 12 }}>
+            {orders.length === 0 ? (
+              <p>No customer orders found.</p>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Customer</th>
+                      <th>Date</th>
+                      <th>Total</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((o) => (
+                      <tr key={o.order_id}>
+                        <td style={{ fontFamily: "monospace", fontSize: 12 }}>
+                          <button
+                            className="link-btn"
+                            onClick={() => viewOrder(o.order_id)}
+                          >
+                            {o.order_id}
+                          </button>
+                        </td>
+                        <td>
+                          {o.firstname} {o.lastname}{" "}
+                          <div style={{ fontSize: 12, color: "#6b7280" }}>
+                            {o.email}
+                          </div>
+                        </td>
+                        <td>{new Date(o.order_date).toLocaleString()}</td>
+                        <td>${o.total_amount}</td>
+                        <td>{o.status}</td>
+                        <td>
+                          <div className="flex gap-4">
+                            {o.status === "Pending" && (
+                              <button
+                                className="action-btn accept"
+                                onClick={() => acceptOrder(o.order_id)}
+                              >
+                                Accept
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Details modal */}
+        {showDetails && (
+          <div className="modal-overlay">
+            <div className="modal">
+              <h2>Order {selectedOrder[0]?.order_id}</h2>
+              <p style={{ marginTop: 0 }}>
+                <strong>Customer:</strong> {selectedOrder[0]?.firstname}{" "}
+                {selectedOrder[0]?.lastname} ({selectedOrder[0]?.email})
+              </p>
+              <table className="table" style={{ marginTop: 8 }}>
+                <thead>
+                  <tr>
+                    <th>ISBN</th>
+                    <th>Title</th>
+                    <th>Price</th>
+                    <th>Qty</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedOrder.map((it: any, idx: number) => (
+                    <tr key={idx}>
+                      <td style={{ fontFamily: "monospace" }}>{it.ISBN}</td>
+                      <td>{it.Title}</td>
+                      <td>${it.sellingPrice}</td>
+                      <td>{it.quantity}</td>
+                      <td>${it.item_total}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <div className="modal-actions">
+                <button
+                  className="cancel-btn"
+                  onClick={() => setShowDetails(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
