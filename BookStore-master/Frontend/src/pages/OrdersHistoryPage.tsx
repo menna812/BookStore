@@ -3,11 +3,22 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import "../styles/ordersHistory.css";
 
+interface OrderItem {
+  ISBN: string;
+  Title: string;
+  avatar: string;
+  sellingPrice: number;
+  quantity: number;
+  item_total: number;
+  authors: string;
+}
+
 interface Order {
   order_id: string;
   order_date: string;
   total_amount: number;
   status: string;
+  items: OrderItem[];
 }
 
 const OrdersHistoryPage: React.FC = () => {
@@ -138,6 +149,42 @@ const OrdersHistoryPage: React.FC = () => {
               </div>
 
               <div className="order-body">
+                {/* Order Items */}
+                <div className="order-items">
+                  <h4 className="items-title">Items in this order</h4>
+                  {order.items && order.items.length > 0 ? (
+                    <div className="items-list">
+                      {order.items.map((item) => (
+                        <div key={item.ISBN} className="order-item">
+                          <div className="item-image">
+                            <img 
+                              src={item.avatar || '/placeholder-book.jpg'} 
+                              alt={item.Title}
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/placeholder-book.jpg';
+                              }}
+                            />
+                          </div>
+                          <div className="item-details">
+                            <h5 className="item-title">{item.Title}</h5>
+                            <p className="item-isbn">ISBN: {item.ISBN}</p>
+                            {item.authors && (
+                              <p className="item-author">By: {item.authors}</p>
+                            )}
+                            <div className="item-pricing">
+                              <span className="item-price">${parseFloat(item.sellingPrice?.toString() || '0').toFixed(2)}</span>
+                              <span className="item-quantity">× {item.quantity}</span>
+                              <span className="item-total">${parseFloat(item.item_total?.toString() || '0').toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="no-items">No items found for this order.</p>
+                  )}
+                </div>
+
                 <div className="order-details">
                   <div className="order-total-section">
                     <span className="total-label">Total Amount</span>

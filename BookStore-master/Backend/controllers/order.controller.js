@@ -50,9 +50,9 @@ exports.checkout = async (req, res) => {
 
     // 4. Create Main Order Record
     const [orderResult] = await connection.execute(
-      `INSERT INTO \`order\` (customer_id, total_amount, status, shipping_address)
-       VALUES (?, ?, 'Paid', ?)`,
-      [userId, finalTotal, JSON.stringify(shipping_info)]
+      `INSERT INTO \`order\` (customer_id, total_amount, status)
+       VALUES (?, ?, 'Paid')`,
+      [userId, finalTotal]
     );
 
     const orderId = orderResult.insertId;
@@ -61,9 +61,9 @@ exports.checkout = async (req, res) => {
     for (const item of items) {
       // Insert item
       await connection.execute(
-        `INSERT INTO order_item (order_id, ISBN, quantity, price_at_purchase)
-         VALUES (?, ?, ?, ?)`,
-        [orderId, item.ISBN, item.quantity, item.sellingPrice]
+        `INSERT INTO order_item (order_id, ISBN, quantity)
+         VALUES (?, ?, ?)`,
+        [orderId, item.ISBN, item.quantity]
       );
 
       // Deduct stock (the database will throw error if stock_quantity < 0 if unsigned)
