@@ -127,21 +127,34 @@ const CheckoutPage = () => {
       const API_BASE_URL =
         import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
+      const payload = {
+        // Use ?? null to ensure no 'undefined' reaches the API
+        credit_card: cardNumber.replace(/\s/g, "") ?? null,
+        expiry_date: expiryDate ?? null,
+        cvv: cvv ?? null,
+        card_holder: cardHolder ?? null,
+        shipping_info: {
+          firstName: shippingInfo.firstName ?? null,
+          lastName: shippingInfo.lastName ?? null,
+          email: shippingInfo.email ?? null,
+          phone: shippingInfo.phone ?? null,
+          streetAddress: shippingInfo.streetAddress ?? null,
+          city: shippingInfo.city ?? null,
+          state: shippingInfo.state ?? null,
+          zipCode: shippingInfo.zipCode ?? null,
+          country: shippingInfo.country ?? null,
+        },
+        // Check these property names carefully!
+        items: cartItems.map((item) => ({
+          book_id: item.ISBN,
+          quantity: item.Buying_quantity,
+          price: item.sellingPrice,
+        })),
+      };
+
       const response = await axios.post(
         `${API_BASE_URL}/orders/checkout`,
-        {
-          credit_card: cardNumber.replace(/\s/g, ""),
-          expiry_date: expiryDate,
-          cvv: cvv,
-          card_holder: cardHolder,
-          shipping_info: shippingInfo,
-          // Optionally include cart items for backend validation
-          items: cartItems.map((item) => ({
-            book_id: item.ISBN,
-            quantity: item.Buying_quantity,
-            price: item.sellingPrice,
-          })),
-        },
+        payload,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

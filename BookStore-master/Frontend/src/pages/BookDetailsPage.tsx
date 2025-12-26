@@ -78,6 +78,7 @@ export const BookDetailsPage: React.FC<BookDetailsPageProps> = ({ onCartOpen }) 
         sellingPrice: Number(book.sellingPrice),
         Buying_quantity: quantity, // Uses selected quantity
         avatar: book.avatar,
+        author: book.authors,
       };
       
       // Add to cart using context

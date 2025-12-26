@@ -1,9 +1,13 @@
 const db = require("../config/database");
 
 exports.checkout = async (req, res) => {
+  const userId = req.userId;
+  if (!userId) {
+    return res.status(401).json({ message: "User not authenticated" });
+  }
   const { credit_card, expiry_date, cvv, card_holder, shipping_info } =
     req.body;
-  const userId = req.userId;
+ 
 
   const connection = await db.getConnection();
 

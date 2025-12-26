@@ -10,8 +10,7 @@ interface CartSidebarProps {
 }
 
 const Cart: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
-  const { cartItems, updateQuantity, removeFromCart, decreaseQuantity } =
-    useCart();
+  const { cartItems, updateQuantity, removeFromCart } = useCart();
   const navigate = useNavigate();
 
   const subtotal: number = cartItems.reduce(
@@ -87,7 +86,9 @@ const Cart: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                       <div className="cart-quantity-controls">
                         <button
                           className="cart-quantity-btn"
-                          onClick={() => updateQuantity(item.ISBN, -1)}
+                          onClick={() =>
+                            updateQuantity(item.ISBN, item.Buying_quantity - 1)
+                          }
                           aria-label="Decrease quantity"
                         >
                           <Minus size={14} />
@@ -97,7 +98,9 @@ const Cart: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                         </span>
                         <button
                           className="cart-quantity-btn"
-                          onClick={() => updateQuantity(item.ISBN, +1)}
+                          onClick={() =>
+                            updateQuantity(item.ISBN, item.Buying_quantity + 1)
+                          }
                           aria-label="Increase quantity"
                         >
                           <Plus size={14} />
