@@ -11,7 +11,7 @@ export const Header: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-  const { getCartCount } = useCart();
+  const { getCartCount, clearCart } = useCart();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   
@@ -25,6 +25,7 @@ export const Header: React.FC = () => {
   // Logout handler
   const handleLogout = () => {
     console.log('🔍 Logging out...');
+    clearCart();
     logout();
     navigate('/');
     setIsMenuOpen(false);
