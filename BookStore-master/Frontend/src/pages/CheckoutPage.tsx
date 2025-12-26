@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ShoppingCart, CreditCard, CheckCircle2, Package } from "lucide-react";
+import {
+  ArrowLeft,
+  ShoppingCart,
+  CreditCard,
+  CheckCircle2,
+  Package,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import CreditCardInput from "../components/checkout/CreditCardInput";
@@ -13,13 +19,13 @@ import "../styles/checkout.css";
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
-  
+
   // Payment Info
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
   const [cardHolder, setCardHolder] = useState("");
-  
+
   // Shipping Info State
   const [shippingInfo, setShippingInfo] = useState({
     firstName: "",
@@ -32,16 +38,18 @@ const CheckoutPage = () => {
     zipCode: "",
     country: "US",
   });
-  
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
   const { showSuccess, showError } = useToast();
 
   // Handle shipping info changes
-  const handleShippingChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleShippingChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
-    setShippingInfo(prev => ({
+    setShippingInfo((prev) => ({
       ...prev,
       [name]: value,
     }));
@@ -98,6 +106,7 @@ const CheckoutPage = () => {
       showError("Please enter your ZIP code.");
       return false;
     }
+    console.log(shippingInfo);
     return true;
   };
 
@@ -106,6 +115,7 @@ const CheckoutPage = () => {
       showError("Your cart is empty.");
       return;
     }
+    console.log(cartItems);
 
     if (!validateCard()) return;
     if (!validateShippingInfo()) return;
@@ -114,8 +124,9 @@ const CheckoutPage = () => {
 
     try {
       const token = localStorage.getItem("token");
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
-      
+      const API_BASE_URL =
+        import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+
       const response = await axios.post(
         `${API_BASE_URL}/orders/checkout`,
         {
@@ -125,8 +136,8 @@ const CheckoutPage = () => {
           card_holder: cardHolder,
           shipping_info: shippingInfo,
           // Optionally include cart items for backend validation
-          items: cartItems.map(item => ({
-            book_id: item.cart_id,
+          items: cartItems.map((item) => ({
+            book_id: item.ISBN,
             quantity: item.Buying_quantity,
             price: item.sellingPrice,
           })),
@@ -140,7 +151,6 @@ const CheckoutPage = () => {
       setIsSuccess(true);
       showSuccess(response.data.message || "Order placed successfully!");
       clearCart();
-
     } catch (err: any) {
       if (err.response?.data?.message) {
         showError(err.response.data.message);
@@ -152,7 +162,10 @@ const CheckoutPage = () => {
     }
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.sellingPrice * item.Buying_quantity, 0);
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.sellingPrice * item.Buying_quantity,
+    0
+  );
   const shipping = subtotal > 50 ? 0 : 5.99;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
@@ -200,7 +213,7 @@ const CheckoutPage = () => {
             className="btn-secondary-checkout"
             style={{ width: "auto", marginBottom: "2rem" }}
           >
-            <ArrowLeft size={20} className="arrow-icon"/>
+            <ArrowLeft size={20} className="arrow-icon" />
             Back to Shopping
           </button>
 
@@ -232,8 +245,9 @@ const CheckoutPage = () => {
 
                 <h2 className="success-title">Order Placed Successfully!</h2>
                 <p className="success-message">
-                  Thank you for your purchase. Your order has been confirmed and will be processed shortly.
-                  You will receive a confirmation email with tracking details.
+                  Thank you for your purchase. Your order has been confirmed and
+                  will be processed shortly. You will receive a confirmation
+                  email with tracking details.
                 </p>
 
                 <div className="success-order-number">
@@ -356,7 +370,9 @@ const CheckoutPage = () => {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label required">Street Address</label>
+                    <label className="form-label required">
+                      Street Address
+                    </label>
                     <input
                       type="text"
                       name="streetAddress"
@@ -381,7 +397,7 @@ const CheckoutPage = () => {
                     </div>
                     <div className="form-group">
                       <label className="form-label required">State</label>
-                      <select 
+                      <select
                         name="state"
                         value={shippingInfo.state}
                         onChange={handleShippingChange}
@@ -410,7 +426,7 @@ const CheckoutPage = () => {
                     </div>
                     <div className="form-group">
                       <label className="form-label required">Country</label>
-                      <select 
+                      <select
                         name="country"
                         value={shippingInfo.country}
                         onChange={handleShippingChange}
@@ -424,7 +440,7 @@ const CheckoutPage = () => {
                   </div>
                 </motion.div>
               </div>
-              
+
               {/* Right Column - Order Summary */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -452,9 +468,7 @@ const CheckoutPage = () => {
                         Processing Payment...
                       </>
                     ) : (
-                      <>
-                        Complete Purchase - ${total.toFixed(2)}
-                      </>
+                      <>Complete Purchase - ${total.toFixed(2)}</>
                     )}
                   </motion.button>
 

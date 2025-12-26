@@ -28,4 +28,9 @@ router.put(
   adminController.confirmReplenishmentReceipt
 );
 
+// Customer Orders (admin)
+router.get("/orders/customers", adminController.getAllCustomerOrders);
+router.get("/orders/:orderId", adminController.getCustomerOrderDetails);
+router.put("/orders/:orderId/accept", adminController.acceptCustomerOrder);
+
 module.exports = router;

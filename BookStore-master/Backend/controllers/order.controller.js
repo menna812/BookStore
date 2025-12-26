@@ -1,127 +1,104 @@
-const db = require('../config/database');
+const db = require("../config/database");
 
-exports.checkout = async (req, res, next) => {
-  const { 
-    credit_card, 
-    expiry_date, 
-    cvv,
-    card_holder,
-    shipping_info,
-    items 
-  } = req.body;
-  
+exports.checkout = async (req, res) => {
+  const { credit_card, expiry_date, cvv, card_holder, shipping_info } =
+    req.body;
   const userId = req.userId;
 
-  // Get connection for transaction
   const connection = await db.getConnection();
 
   try {
-    console.log('Starting checkout for user:', userId);
-    
-    // Start transaction
     await connection.beginTransaction();
+    console.log("Checkout started for user:", userId);
 
-    // Validate cart has items
-    if (!items || items.length === 0) {
-      throw new Error('Cart is empty');
+    // Get user's cart_id
+    const [cartRows] = await connection.execute(
+      "SELECT cart_id FROM cart WHERE customer_id = ?",
+      [userId]
+    );
+
+    if (cartRows.length === 0) {
+      throw new Error("Cart not found");
+    }
+
+    const cartId = cartRows[0].cart_id;
+
+    // Get cart items from DB
+    const [items] = await connection.execute(
+      `
+      SELECT 
+        ci.ISBN,
+        ci.Buying_quantity AS quantity,
+        b.sellingPrice,
+        b.stock_quantity
+      FROM cart_item ci
+      JOIN book b ON b.ISBN = ci.ISBN
+      WHERE ci.cart_id = ?
+      `,
+      [cartId]
+    );
+
+    if (items.length === 0) {
+      throw new Error("Cart is empty");
     }
 
     // Calculate total
     let total = 0;
     for (const item of items) {
-      total += item.price * item.quantity;
+      if (item.stock_quantity < item.quantity) {
+        throw new Error(`Insufficient stock for ISBN ${item.ISBN}`);
+      }
+      total += item.sellingPrice * item.quantity;
     }
 
-    console.log('Order total:', total);
-
-    // Create order in ORDER table
+    // Create order
     const [orderResult] = await connection.execute(
-      `INSERT INTO \`ORDER\` (customer_id, order_date, total_amount, status) 
-       VALUES (?, NOW(), ?, 'pending')`,
+      `
+      INSERT INTO \`order\` (customer_id, total_amount, status)
+      VALUES (?, ?, 'Pending')
+      `,
       [userId, total]
     );
 
     const orderId = orderResult.insertId;
-    console.log('Order created with ID:', orderId);
 
-    // Process each cart item
+    // Insert order items + update stock
     for (const item of items) {
-      console.log('Processing item:', item.book_id);
-
-      // Check stock availability
-      const [stockCheck] = await connection.execute(
-        'SELECT stock FROM BOOK WHERE book_id = ?',
-        [item.book_id]
-      );
-
-      if (!stockCheck[0] || stockCheck[0].stock < item.quantity) {
-        throw new Error(`Insufficient stock for book ID ${item.book_id}`);
-      }
-
-      // Insert into ORDER_ITEM table
       await connection.execute(
-        'INSERT INTO ORDER_ITEM (order_id, book_id, quantity, price) VALUES (?, ?, ?, ?)',
-        [orderId, item.book_id, item.quantity, item.price]
+        `
+        INSERT INTO order_item (order_id, ISBN, quantity)
+        VALUES (?, ?, ?)
+        `,
+        [orderId, item.ISBN, item.quantity]
       );
 
-      // Update book stock
       await connection.execute(
-        'UPDATE BOOK SET stock = stock - ? WHERE book_id = ?',
-        [item.quantity, item.book_id]
+        `
+        UPDATE book
+        SET stock_quantity = stock_quantity - ?
+        WHERE ISBN = ?
+        `,
+        [item.quantity, item.ISBN]
       );
-
-      console.log('Stock updated for book:', item.book_id);
     }
 
-    // Clear user's cart
-    await connection.execute(
-      'DELETE FROM CART WHERE customer_id = ?',
-      [userId]
-    );
+    // Clear cart items
+    await connection.execute("DELETE FROM cart_item WHERE cart_id = ?", [
+      cartId,
+    ]);
 
-    console.log('Cart cleared for user:', userId);
-
-    // Commit transaction
     await connection.commit();
-    console.log('✅ Transaction committed successfully');
 
-    res.status(200).json({ 
-      message: "Checkout successful. Order placed.",
-      orderId: orderId,
-      total: total
+    res.status(200).json({
+      message: "Checkout successful",
+      orderId,
+      total,
     });
-
   } catch (err) {
-    // Rollback transaction on error
     await connection.rollback();
-    console.error('❌ Checkout error:', err.message);
-    
-    // Send appropriate error message
-    if (err.message.includes('Insufficient stock')) {
-      res.status(400).json({ message: err.message });
-    } else if (err.message.includes('Cart is empty')) {
-      res.status(400).json({ message: err.message });
-    } else {
-      res.status(500).json({ message: 'Checkout failed. Please try again.' });
-    }
+    console.error(err.message);
+    res.status(400).json({ message: err.message });
   } finally {
-    // Release connection back to pool
     connection.release();
-  }
-};
-
-exports.getPastOrders = async (req, res, next) => {
-  try {
-    const query = `
-      SELECT o.order_id, o.order_date, o.total_amount, o.status
-      FROM \`ORDER\` o 
-      WHERE o.customer_id = ? 
-      ORDER BY o.order_date DESC
-    `;
-    const [orders] = await db.execute(query, [req.userId]);
-    res.json(orders);
-  } catch (err) {
-    console.error('Get orders error:', err);
-    res.status(500).json({ message: 'Failed to fetch orders' });
   }
 };

@@ -44,7 +44,7 @@ class Book {
       bookData.title,
       bookData.year,
       bookData.stock,
-      bookData.threshold,
+      bookData.threshold ?? 0,
       bookData.category,
       bookData.price,
       bookData.publisher_id,
@@ -83,7 +83,7 @@ const bookSchema = Joi.object({
     .max(new Date().getFullYear())
     .required(),
   stock: Joi.number().integer().min(0).required(),
-  threshold: Joi.number().integer().min(0).required(),
+  threshold: Joi.number().integer().min(0).optional().allow(null).default(0),
   category: Joi.string()
     .valid("Science", "Art", "Religion", "History", "Geography")
     .required(),

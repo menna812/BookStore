@@ -1,29 +1,49 @@
-import axios from 'axios';
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import axios from "axios";
+import React, { createContext, useContext, useState, useEffect } from "react";
+
+axios.defaults.baseURL = "http://localhost:3000";
+
 
 export interface CartItem {
-  cart_id?: number;           // optional (comes from backend)
   ISBN: string;
-  Buying_quantity: number;
   Title: string;
   sellingPrice: number;
-  avatar: string;
-  author?: string;
+  Buying_quantity: number;
+  avatar?: string;
 }
 
 interface CartContextType {
   cartItems: CartItem[];
-  fetchCart: (customerId: number) => Promise<void>;
-  addToCart: (item: CartItem) => void;
-  updateQuantity: (ISBN: string, newQty: number) => void;
-  removeFromCart: (ISBN: string) => void;
+  fetchCart: () => Promise<void>;
+  addToCart: (isbn: string) => Promise<void>;
+  updateQuantity: (isbn: string, quantity: number) => Promise<void>;
+  removeFromCart: (isbn: string) => Promise<void>;
+  clearCart: () => void;
   getCartCount: () => number;
   getCartTotal: () => number;
-  clearCart: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    // Only fetch if user is logged in
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetchCart();
+    }
+  }, []);
+
+  /* 🔐 AUTH HEADER */
+  const authHeader = () => ({
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
 // LocalStorage key for cart items
 const CART_STORAGE_KEY = 'bookstore_cart_items';
 
@@ -59,17 +79,96 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('🗑️ Cart cleared');
   };
 
-  // 🔹 Fetch cart from backend
-  const fetchCart = async (customerId: number) => {
+  /* ================= FETCH CART ================= */
+  const fetchCart = async () => {
     try {
+      const res = await axios.get("/api/cart", authHeader());
+      setCartItems(res.data.items || []);
       const res = await axios.get(`/api/cart/${customerId}`);
       setCartItems(res.data);
       console.log('🔄 Cart fetched from backend:', res.data);
     } catch (err) {
-      console.error('Fetch cart error:', err);
+      console.error("Fetch cart error:", err);
     }
   };
 
+  /* ================= ADD TO CART ================= */
+  const addToCart = async (isbn: string) => {
+    try {
+      const normalizedIsbn = String(isbn).trim();
+      if (normalizedIsbn.length !== 13) {
+        console.error(
+          "Add to cart aborted: ISBN must be 13 characters long:",
+          normalizedIsbn
+        );
+        return;
+      }
+
+      await axios.post(
+        "/api/cart",
+        { isbn: normalizedIsbn, quantity: 1 },
+        authHeader()
+      );
+
+      await fetchCart();
+    } catch (err) {
+      console.error("Add to cart error:", err);
+    }
+  };
+
+  /* ================= UPDATE QUANTITY ================= */
+  const updateQuantity = async (isbn: string, quantityChange: number) => {
+    try {
+      const normalizedIsbn = String(isbn).trim();
+      if (normalizedIsbn.length !== 13) {
+        console.error(
+          "Update quantity aborted: ISBN must be 13 characters long:",
+          normalizedIsbn
+        );
+        return;
+      }
+
+      const currentItem = cartItems.find(
+        (item) => item.ISBN === normalizedIsbn
+      );
+      if (!currentItem) return;
+
+      if (quantityChange < 0) {
+        // Decrement by 1 using the decrementOnly flag
+        await axios.delete(
+          `/api/cart/${normalizedIsbn}?decrementOnly=true`,
+          authHeader()
+        );
+      } else if (quantityChange > 0) {
+        // Increment: add the quantity
+        await axios.post(
+          "/api/cart",
+          { isbn: normalizedIsbn, quantity: quantityChange },
+          authHeader()
+        );
+      }
+
+      await fetchCart();
+    } catch (err) {
+      console.error("Update quantity error:", err);
+    }
+  };
+
+  /* ================= REMOVE ITEM (DELETE ALL) ================= */
+  const removeFromCart = async (isbn: string) => {
+    try {
+      const normalizedIsbn = String(isbn).trim();
+      // No query parameter = delete entire item
+      await axios.delete(`/api/cart/${normalizedIsbn}`, authHeader());
+      await fetchCart();
+    } catch (err) {
+      console.error("Remove from cart error:", err);
+    }
+  };
+
+  /* ================= CLEAR CART (FRONTEND ONLY) ================= */
+  const clearCart = () => {
+    setCartItems([]);
   // 🔹 ADD TO CART
   const addToCart = (item: CartItem) => {
     console.log('🔵 addToCart function called');
@@ -121,7 +220,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('❌ Item removed from cart:', ISBN);
   };
 
-  // 🔹 Helpers
+  /* ================= HELPERS ================= */
   const getCartCount = () =>
     cartItems.reduce((sum, item) => sum + item.Buying_quantity, 0);
 
@@ -139,9 +238,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addToCart,
         updateQuantity,
         removeFromCart,
+        clearCart,
         getCartCount,
         getCartTotal,
-        clearCart
       }}
     >
       {children}
@@ -152,7 +251,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {
-    throw new Error('useCart must be used within CartProvider');
+    throw new Error("useCart must be used within CartProvider");
   }
   return context;
 };

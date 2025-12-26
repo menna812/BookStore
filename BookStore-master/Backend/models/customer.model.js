@@ -29,14 +29,10 @@ const customerUpdateSchema = Joi.object({
   password: Joi.string().min(8),
   // Avatar: accept URLs (including data:) up to 255 chars to match the DB column.
   // This mirrors book/admin validation which accepts image URLs or small data URIs.
-  avatar: Joi.string()
-    .uri()
-    .max(255)
-    .allow(null, "")
-    .messages({
-      "string.uri": "avatar must be a valid URL or data URI",
-      "string.max": "avatar is too long (max 255 chars)",
-    }),
+  avatar: Joi.string().uri().max(255).allow(null, "").messages({
+    "string.uri": "avatar must be a valid URL or data URI",
+    "string.max": "avatar is too long (max 255 chars)",
+  }),
 }).min(1);
 
 // --- Class Implementation ---
@@ -52,21 +48,47 @@ class Customer {
 
   /** Creates a new customer account (Registration). */
   static async create(customerData) {
-    const hashedPassword = await bcrypt.hash(customerData.password, 10);
+    const connection = await db.getConnection();
 
-    const query = `
-            INSERT INTO CUSTOMER (email, password, firstname, lastname, phone_no, shipping_address)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `;
-    const [result] = await db.execute(query, [
-      customerData.email,
-      hashedPassword,
-      customerData.firstname,
-      customerData.lastname,
-      customerData.phone_no || null,
-      customerData.shipping_address || null,
-    ]);
-    return result.insertId;
+    try {
+      await connection.beginTransaction();
+
+      // 1️⃣ Hash password
+      const hashedPassword = await bcrypt.hash(customerData.password, 10);
+
+      // 2️⃣ Insert customer
+      const [result] = await connection.execute(
+        `
+      INSERT INTO CUSTOMER (email, password, firstname, lastname, phone_no, shipping_address)
+      VALUES (?, ?, ?, ?, ?, ?)
+      `,
+        [
+          customerData.email,
+          hashedPassword,
+          customerData.firstname,
+          customerData.lastname,
+          customerData.phone_no || null,
+          customerData.shipping_address || null,
+        ]
+      );
+
+      const customerId = result.insertId;
+
+      // 3️⃣ Create a cart for this customer
+      await connection.execute(`INSERT INTO CART (customer_id) VALUES (?)`, [
+        customerId,
+      ]);
+
+      // 4️⃣ Commit transaction
+      await connection.commit();
+
+      return customerId;
+    } catch (err) {
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
   }
 
   /** Finds customer profile details by ID. */
