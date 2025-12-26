@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import '../../styles/bookgallery.css';
 import { useCart } from '../../context/CartContext';
-
 
 interface Book {
     ISBN: string;
@@ -16,14 +14,14 @@ interface Book {
 }
 
 interface BookGalleryProps {
-  onCartOpen?: () => void; // Add this prop
+  onCartOpen?: () => void;
+  onBookClick?: (isbn: string) => void; // Navigate to book details
 }
 
-export const BookGallery: React.FC <BookGalleryProps> = ({ onCartOpen }) => {
+export const BookGallery: React.FC<BookGalleryProps> = ({ onCartOpen, onBookClick }) => {
     const { addToCart } = useCart();
     const [books, setBooks] = useState<Book[]>([]);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchBooks = async () => {
@@ -79,9 +77,38 @@ export const BookGallery: React.FC <BookGalleryProps> = ({ onCartOpen }) => {
         return stars;
     };
 
-    const getRandomDiscount = () => {
-        const discounts = [4, 10, 13, 15, 17, 20];
-        return discounts[Math.floor(Math.random() * discounts.length)];
+    const handleAddToCart = (book: Book, e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent navigation when clicking add to cart
+        
+        console.log('🔴 handleAddToCart clicked');
+        console.log('🔴 Book data:', book);
+        
+        const cartItem = {
+            ISBN: book.ISBN,
+            Title: book.Title,
+            sellingPrice: Number(book.sellingPrice),
+            Buying_quantity: 1,
+            avatar: book.avatar,
+        };
+        
+        console.log('🔴 Cart item to add:', cartItem);
+        addToCart(cartItem);
+        console.log('🔴 addToCart called');
+        
+        // Open cart if function exists
+        if (onCartOpen) {
+            console.log('🔴 Opening cart sidebar');
+            onCartOpen();
+        }
+    };
+
+    const handleBookClick = (isbn: string) => {
+        if (onBookClick) {
+            onBookClick(isbn);
+        } else {
+            // Fallback: navigate using window.location
+            window.location.href = `/book/${isbn}`;
+        }
     };
 
     const isHot = (rating: number) => rating >= 4.5;
@@ -92,39 +119,16 @@ export const BookGallery: React.FC <BookGalleryProps> = ({ onCartOpen }) => {
 
     const featuredBook = books[0];
     const sideBooks = books.slice(1, 9);
-   const handleAddToCart = (book: Book) => {
-  console.log('🔴 handleAddToCart clicked');
-  console.log('🔴 Book data:', book);
-  console.log('🔴 Cart context exists:', !!addToCart);
-  
-  const cartItem = {
-    ISBN: book.ISBN,
-    Title: book.Title,
-    sellingPrice: Number(book.sellingPrice),
-    Buying_quantity: 1,
-    avatar: book.avatar,
-  };
-  
-  console.log('🔴 Cart item to add:', cartItem);
-  
-  addToCart(cartItem);
-  
-  console.log('🔴 addToCart called');
-  
-  // Open cart if function exists
-  if (onCartOpen) {
-    console.log('🔴 Opening cart sidebar');
-    onCartOpen();
-  }
-};
-    
 
     return (
         <section className="book-gallery-section">
             <div className="book-gallery-container">
                 <div className="section-header">
                     <h2 className="section-title">Travel the World from Home</h2>
-                    <button className="view-all-btn" onClick={() => navigate('/books')}>
+                    <button 
+                        className="view-all-btn" 
+                        onClick={() => window.location.href = '/books'}
+                    >
                         View all →
                     </button>
                 </div>
@@ -133,7 +137,11 @@ export const BookGallery: React.FC <BookGalleryProps> = ({ onCartOpen }) => {
                     {/* Featured Book - Left Side */}
                     {featuredBook && (
                         <div className="featured-book-card">
-                            <div className="featured-book-image-wrapper">
+                            <div 
+                                className="featured-book-image-wrapper"
+                                onClick={() => handleBookClick(featuredBook.ISBN)}
+                                style={{ cursor: 'pointer' }}
+                            >
                                 {isHot(featuredBook.rating) && (
                                     <span className="hot-badge">Hot</span>
                                 )}
@@ -143,7 +151,10 @@ export const BookGallery: React.FC <BookGalleryProps> = ({ onCartOpen }) => {
                                     className="featured-book-image"
                                 />
                                 <div className="hover-overlay">
-                                    <button className="add-to-cart-btn" onClick={() => handleAddToCart(featuredBook)}>
+                                    <button 
+                                        className="add-to-cart-btn" 
+                                        onClick={(e) => handleAddToCart(featuredBook, e)}
+                                    >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                             <circle cx="9" cy="21" r="1" />
                                             <circle cx="20" cy="21" r="1" />
@@ -155,10 +166,21 @@ export const BookGallery: React.FC <BookGalleryProps> = ({ onCartOpen }) => {
                             </div>
 
                             <div className="featured-book-content">
-                                <h3 className="featured-book-title">{featuredBook.Title}</h3>
+                                <h3 
+                                    className="featured-book-title"
+                                    onClick={() => handleBookClick(featuredBook.ISBN)}
+                                    style={{ 
+                                        cursor: 'pointer',
+                                        transition: 'color 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.color = '#f97316'}
+                                    onMouseLeave={(e) => e.currentTarget.style.color = ''}
+                                >
+                                    {featuredBook.Title}
+                                </h3>
                                 <p className="gallery-author">{featuredBook.authors}</p>
 
-                                <div className="gallery-rating-price ">
+                                <div className="gallery-rating-price">
                                     <span className="gallery-price">${Number(featuredBook.sellingPrice).toFixed(2)}</span>
                                     <div className="gallery-rating">
                                         <div className="rating-stars">
@@ -176,7 +198,11 @@ export const BookGallery: React.FC <BookGalleryProps> = ({ onCartOpen }) => {
                         {sideBooks.map((book) => {
                             return (
                                 <div key={book.ISBN} className="side-book-card">
-                                    <div className="side-book-image-wrapper">
+                                    <div 
+                                        className="side-book-image-wrapper"
+                                        onClick={() => handleBookClick(book.ISBN)}
+                                        style={{ cursor: 'pointer' }}
+                                    >
                                         {isHot(book.rating) && (
                                             <span className="hot-badge-small">Hot</span>
                                         )}
@@ -186,7 +212,10 @@ export const BookGallery: React.FC <BookGalleryProps> = ({ onCartOpen }) => {
                                             className="side-book-image"
                                         />
                                         <div className="hover-overlay-small">
-                                            <button className="add-to-cart-btn-small" onClick={() => handleAddToCart(book)}>
+                                            <button 
+                                                className="add-to-cart-btn-small" 
+                                                onClick={(e) => handleAddToCart(book, e)}
+                                            >
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                                     <circle cx="9" cy="21" r="1" />
                                                     <circle cx="20" cy="21" r="1" />
@@ -198,11 +227,21 @@ export const BookGallery: React.FC <BookGalleryProps> = ({ onCartOpen }) => {
                                     </div>
 
                                     <div className="side-book-content">
-                                        <h3 className="side-book-title">{book.Title}</h3>
+                                        <h3 
+                                            className="side-book-title"
+                                            onClick={() => handleBookClick(book.ISBN)}
+                                            style={{ 
+                                                cursor: 'pointer',
+                                                transition: 'color 0.2s ease'
+                                            }}
+                                            onMouseEnter={(e) => e.currentTarget.style.color = '#f97316'}
+                                            onMouseLeave={(e) => e.currentTarget.style.color = ''}
+                                        >
+                                            {book.Title}
+                                        </h3>
                                         <p className="side-author">{book.authors}</p>
 
                                         <div className="side-rating-price">
-
                                             <span className="side-price">${Number(book.sellingPrice).toFixed(2)}</span>
                                             <div className="side-rating">
                                                 <div className="rating-stars-small">

@@ -11,9 +11,13 @@ interface SearchResult {
   titleMatch?: boolean;
   authorMatch?: boolean;
   nameMatch?: boolean;
+  isbnMatch?: boolean;
+  publisherMatch?: boolean;
   titleStartsWith?: boolean;
   authorStartsWith?: boolean;
   nameStartsWith?: boolean;
+  isbnStartsWith?: boolean;
+  publisherStartsWith?: boolean;
 }
 
 export const SearchBar: React.FC<{ onExpand?: (expanded: boolean) => void }> = ({ onExpand }) => {
@@ -35,7 +39,7 @@ export const SearchBar: React.FC<{ onExpand?: (expanded: boolean) => void }> = (
   // Fetch suggestions from API
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (query.length >= 2) { // Changed from 3 to 2 for better UX
+      if (query.length >= 2) {
         setLoading(true);
         try {
           let booksData = [];
@@ -53,12 +57,10 @@ export const SearchBar: React.FC<{ onExpand?: (expanded: boolean) => void }> = (
             console.error('Error fetching books:', error);
           }
 
-          // Fetch authors - try multiple possible endpoints
+          // Fetch authors
           try {
-            // Try the search endpoint first
             let authorsResponse = await fetch(`http://localhost:3000/api/authors/search?query=${encodeURIComponent(query)}&limit=5`);
             
-            // If search endpoint doesn't exist, try the main authors endpoint with filtering
             if (!authorsResponse.ok && authorsResponse.status === 404) {
               authorsResponse = await fetch(`http://localhost:3000/api/authors?query=${encodeURIComponent(query)}&limit=5`);
             }
@@ -72,31 +74,37 @@ export const SearchBar: React.FC<{ onExpand?: (expanded: boolean) => void }> = (
             console.error('Error fetching authors:', error);
           }
 
-          console.log('Books data:', booksData); // Debug log
-          console.log('Authors data:', authorsData); // Debug log
+          console.log('Books data:', booksData);
+          console.log('Authors data:', authorsData);
 
           const queryLower = query.toLowerCase();
 
-          // Format book results with match tracking
+          // Format book results with enhanced match tracking
           const bookResults: SearchResult[] = (Array.isArray(booksData) ? booksData : [])
             .map((book: any) => {
               const title = book.Title || book.title || '';
               const author = book.authors || book.author || book.Authors || '';
+              const isbn = book.ISBN || book.isbn || '';
+              const publisher = book.publisher_name || book.Publisher_name || '';
               
               return {
                 type: 'book' as const,
-                id: book.ISBN || book.isbn,
+                id: isbn,
                 title: title,
-                subtitle: author,
+                subtitle: `${author}${publisher ? ` • ${publisher}` : ''}`,
                 titleMatch: title.toLowerCase().includes(queryLower),
                 authorMatch: author.toLowerCase().includes(queryLower),
+                isbnMatch: isbn.toLowerCase().includes(queryLower),
+                publisherMatch: publisher.toLowerCase().includes(queryLower),
                 titleStartsWith: title.toLowerCase().startsWith(queryLower),
-                authorStartsWith: author.toLowerCase().startsWith(queryLower)
+                authorStartsWith: author.toLowerCase().startsWith(queryLower),
+                isbnStartsWith: isbn.toLowerCase().startsWith(queryLower),
+                publisherStartsWith: publisher.toLowerCase().startsWith(queryLower)
               };
             })
             .filter((book) => {
-              // Only include books where query matches title OR author
-              return book.titleMatch || book.authorMatch;
+              // Include books where query matches title, author, ISBN, or publisher
+              return book.titleMatch || book.authorMatch || book.isbnMatch || book.publisherMatch;
             });
 
           // Format author results with match tracking
@@ -114,44 +122,69 @@ export const SearchBar: React.FC<{ onExpand?: (expanded: boolean) => void }> = (
               };
             })
             .filter((author) => {
-              // Only include authors where query matches name
               return author.nameMatch;
             });
 
           // Combine and sort all results with intelligent prioritization
           const allResults = [...bookResults, ...authorResults].sort((a, b) => {
-            // Priority 1: Items where main field starts with query
+            // Priority 1: Exact ISBN match (highest priority for books)
+            if (a.type === 'book' && a.isbnMatch && a.isbnStartsWith) {
+              if (!(b.type === 'book' && b.isbnMatch && b.isbnStartsWith)) return -1;
+            }
+            if (b.type === 'book' && b.isbnMatch && b.isbnStartsWith) {
+              if (!(a.type === 'book' && a.isbnMatch && a.isbnStartsWith)) return 1;
+            }
+
+            // Priority 2: Items where main field starts with query
             const aMainStarts = a.type === 'book' ? a.titleStartsWith : a.nameStartsWith;
             const bMainStarts = b.type === 'book' ? b.titleStartsWith : b.nameStartsWith;
             
             if (aMainStarts && !bMainStarts) return -1;
             if (!aMainStarts && bMainStarts) return 1;
             
-            // Priority 2: Books where author starts with query
+            // Priority 3: Books where author starts with query
             if (a.type === 'book' && a.authorStartsWith && 
                 !(b.type === 'book' && b.authorStartsWith)) return -1;
             if (b.type === 'book' && b.authorStartsWith && 
                 !(a.type === 'book' && a.authorStartsWith)) return 1;
             
-            // Priority 3: Items where main field contains query
+            // Priority 4: Books where publisher starts with query
+            if (a.type === 'book' && a.publisherStartsWith && 
+                !(b.type === 'book' && b.publisherStartsWith)) return -1;
+            if (b.type === 'book' && b.publisherStartsWith && 
+                !(a.type === 'book' && a.publisherStartsWith)) return 1;
+            
+            // Priority 5: Items where main field contains query
             const aMainMatch = a.type === 'book' ? a.titleMatch : a.nameMatch;
             const bMainMatch = b.type === 'book' ? b.titleMatch : b.nameMatch;
             
             if (aMainMatch && !bMainMatch) return -1;
             if (!aMainMatch && bMainMatch) return 1;
             
-            // Priority 4: Books where author contains query
+            // Priority 6: Books where author contains query
             if (a.type === 'book' && a.authorMatch && 
                 !(b.type === 'book' && b.authorMatch)) return -1;
             if (b.type === 'book' && b.authorMatch && 
-                !(a.type === 'book' && a.authorMatch)) return 1;
+                !(a.type === 'book' && b.authorMatch)) return 1;
+
+            // Priority 7: Books where publisher contains query
+            if (a.type === 'book' && a.publisherMatch && 
+                !(b.type === 'book' && b.publisherMatch)) return -1;
+            if (b.type === 'book' && b.publisherMatch && 
+                !(a.type === 'book' && a.publisherMatch)) return 1;
+
+            // Priority 8: Books where ISBN contains query
+            if (a.type === 'book' && a.isbnMatch && 
+                !(b.type === 'book' && b.isbnMatch)) return -1;
+            if (b.type === 'book' && b.isbnMatch && 
+                !(a.type === 'book' && a.isbnMatch)) return 1;
 
             // Final: alphabetical order
             return a.title.localeCompare(b.title);
           });
 
-          console.log('All sorted results:', allResults); // Debug log
-          setSuggestions(allResults.slice(0, 10)); // Limit to 10 results
+          console.log('All sorted results:', allResults);
+          setSuggestions(allResults.slice(0, 10));
         } catch (error) {
           console.error('Error fetching suggestions:', error);
           setSuggestions([]);
@@ -174,7 +207,6 @@ export const SearchBar: React.FC<{ onExpand?: (expanded: boolean) => void }> = (
     
     navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
     
-    // Reset and close search
     setQuery('');
     setSuggestions([]);
     setIsExpanded(false);
@@ -189,7 +221,6 @@ export const SearchBar: React.FC<{ onExpand?: (expanded: boolean) => void }> = (
       navigate(`/author/${suggestion.id}`);
     }
     
-    // Reset and close search
     setQuery('');
     setSuggestions([]);
     setIsExpanded(false);
@@ -228,7 +259,7 @@ export const SearchBar: React.FC<{ onExpand?: (expanded: boolean) => void }> = (
             <Search size={18} className="search-input-icon" />
             <input
               type="text"
-              placeholder="Search books, authors..."
+              placeholder="Search books by title, author, ISBN, or publisher..."
               value={query}
               autoFocus
               onChange={(e) => setQuery(e.target.value)}
@@ -277,7 +308,7 @@ export const SearchBar: React.FC<{ onExpand?: (expanded: boolean) => void }> = (
                             </span>
                             {suggestion.subtitle && (
                               <span className="suggestion-subtitle">
-                                by {suggestion.subtitle}
+                                {suggestion.subtitle}
                               </span>
                             )}
                           </div>

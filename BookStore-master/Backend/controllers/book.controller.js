@@ -12,6 +12,36 @@ exports.searchBooks = async (req, res, next) => {
   }
 };
 
+// Public route: Get book details by ISBN
+exports.getBookByISBN = async (req, res, next) => {
+  try {
+    const { isbn } = req.params;
+
+    const query = `
+      SELECT 
+        b.*,
+        p.name AS publisher_name,
+        GROUP_CONCAT(a.author_name) AS authors
+      FROM BOOK b
+      LEFT JOIN PUBLISHER p ON b.Publisher_id = p.Publisher_id
+      LEFT JOIN BOOK_AUTHOR ba ON b.ISBN = ba.ISBN
+      LEFT JOIN AUTHOR a ON ba.author_id = a.author_id
+      WHERE b.ISBN = ?
+      GROUP BY b.ISBN
+    `;
+
+    const [rows] = await db.execute(query, [isbn]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Admin route: Add Book (Requirement 1)
 exports.addBook = async (req, res, next) => {
   // Validate input (including author_ids array)

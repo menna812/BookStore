@@ -8,4 +8,6 @@ export interface Book {
   reviews: number;
   coverImage: string;
   category?: string;
+  publisher_name?: string; 
+  Publisher_id?: string; 
 }

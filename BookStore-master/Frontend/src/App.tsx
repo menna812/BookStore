@@ -15,6 +15,7 @@ import { Header } from "./components/common/Navbar";
 import { Footer } from "./components/common/Footer";
 import { AuthProvider } from "./context/AuthContext";
 import { AdminRoute, ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { BookDetailsPage } from './pages/BookDetailsPage';
 
 import "./styles/auth.css";
 import "./styles/homepage.css";
@@ -27,6 +28,7 @@ import "./styles/layout.css";
 import "./styles/cart.css";
 import AdminDashboard from "./pages/AdminDashBoardPage";
 import ProfilePage from "./pages/ProfilePage";
+import { useState } from "react";
 
 // Layout wrapper to conditionally show Header/Footer
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -50,6 +52,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 };
 
 export default function App() {
+  const [isCartOpen, setIsCartOpen] = useState(false);
   return (
     <ToastProvider>
       <BrowserRouter>
@@ -61,6 +64,7 @@ export default function App() {
                   <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/books" element={<AllBooksPage />} />
+                    <Route path="/book/:isbn" element={<BookDetailsPage onCartOpen={() => setIsCartOpen(true)} />} />
                     <Route path="/authors" element={<AllAuthorsPage />} />
                     <Route path="/author/books" element={<AuthorBooksPage />} />
                     <Route path="/search" element={<SearchResultsPage />} />
