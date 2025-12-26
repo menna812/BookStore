@@ -11,7 +11,6 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [userType, setUserType] = useState<"customer" | "admin">("customer");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -59,23 +58,17 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
 
     console.log("Signup data:", signupData); // Debug log
 
-    // Determine the endpoint based on user type
-    const endpoint =
-      userType === "customer"
-        ? "http://localhost:3000/api/auth/register"
-        : "http://localhost:3000/api/admin/register";
-
     setIsLoading(true);
     try {
-      const res = await axios.post(endpoint, signupData);
+      const res = await axios.post(
+        "http://localhost:3000/api/auth/register",
+        signupData
+      );
 
       console.log("Signup response:", res.data); // Debug log
 
       // Show success toast
-      showSuccess(
-        `${userType === "customer" ? "Customer" : "Admin"
-        } account created successfully!`
-      );
+      showSuccess("Account created successfully! Please log in.");
 
       // Clear form
       setFirstname("");
@@ -83,7 +76,6 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
       setEmail("");
       setPassword("");
       setConfirmPassword("");
-      setUserType("customer");
 
       // Redirect to login after a short delay
       setTimeout(() => {
@@ -122,27 +114,6 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
 
   return (
     <div className="auth-form">
-        {/* User Type */}
-      <div className="form-group">
-        <div className="toggle-wrapper">
-          <button
-            type="button"
-            className={`toggle-option ${userType === "customer" ? "active" : ""}`}
-            onClick={() => setUserType("customer")}
-            disabled={isLoading}
-          >
-            Customer
-          </button>
-          <button
-            type="button"
-            className={`toggle-option ${userType === "admin" ? "active" : ""}`}
-            onClick={() => setUserType("admin")}
-            disabled={isLoading}
-          >
-            Admin
-          </button>
-        </div>
-      </div>
       {/* First Name */}
       <div className="form-group mb-4">
         <label className="form-label">First Name</label>
@@ -159,7 +130,7 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
               }
             }}
             onKeyPress={handleKeyPress}
-            placeholder="first Name"
+            placeholder="First Name"
             disabled={isLoading}
           />
         </div>
@@ -281,8 +252,6 @@ const SignupPage: React.FC<{ onSwitchToLogin: () => void }> = ({
           <span className="error-text">{errors.confirmPassword}</span>
         )}
       </div>
-
-    
 
       {/* Submit */}
       <button

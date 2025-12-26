@@ -15,7 +15,8 @@ import { Header } from "./components/common/Navbar";
 import { Footer } from "./components/common/Footer";
 import { AuthProvider } from "./context/AuthContext";
 import { AdminRoute, ProtectedRoute } from "./components/auth/ProtectedRoute";
-import { BookDetailsPage } from './pages/BookDetailsPage';
+import { BookDetailsPage } from "./pages/BookDetailsPage";
+import OrdersHistoryPage from "./pages/OrdersHistoryPage";
 
 import "./styles/auth.css";
 import "./styles/homepage.css";
@@ -30,13 +31,14 @@ import AdminDashboard from "./pages/AdminDashBoardPage";
 import ProfilePage from "./pages/ProfilePage";
 import { useState } from "react";
 
+
 // Layout wrapper to conditionally show Header/Footer
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-
+  const isAdminPage = location.pathname.startsWith("/admin");
   // Don't show Header/Footer on auth pages
   const hideLayout =
-    location.pathname === "/login" || location.pathname === "/signup";
+    location.pathname === "/login" || location.pathname === "/signup" || isAdminPage;
 
   if (hideLayout) {
     return <>{children}</>;
@@ -64,10 +66,18 @@ export default function App() {
                   <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/books" element={<AllBooksPage />} />
-                    <Route path="/book/:isbn" element={<BookDetailsPage onCartOpen={() => setIsCartOpen(true)} />} />
+                    <Route
+                      path="/book/:isbn"
+                      element={
+                        <BookDetailsPage
+                          onCartOpen={() => setIsCartOpen(true)}
+                        />
+                      }
+                    />
                     <Route path="/authors" element={<AllAuthorsPage />} />
                     <Route path="/author/books" element={<AuthorBooksPage />} />
                     <Route path="/search" element={<SearchResultsPage />} />
+                    <Route path="/orders" element={<OrdersHistoryPage />} />
                     {/* Use AuthPage for both login and signup */}
                     <Route path="/login" element={<AuthPage />} />
                     <Route path="/signup" element={<AuthPage />} />
