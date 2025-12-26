@@ -217,3 +217,34 @@ exports.getTopRatedBooks = async (req, res, next) => {
     next(err);
   }
 };
+
+// Public route: Get top 10 best-selling books
+exports.getTopSellers = async (req, res, next) => {
+  try {
+    const query = `
+      SELECT 
+        b.ISBN,
+        b.Title,
+        b.sellingPrice,
+        b.avatar,
+        b.rating,
+        b.rating_count,
+        p.name as publisher_name,
+        GROUP_CONCAT(DISTINCT a.author_name) as authors,
+        COALESCE(SUM(oi.quantity), 0) as total_quantity_sold
+      FROM BOOK b
+      LEFT JOIN PUBLISHER p ON b.Publisher_id = p.Publisher_id
+      LEFT JOIN BOOK_AUTHOR ba ON b.ISBN = ba.ISBN
+      LEFT JOIN AUTHOR a ON ba.author_id = a.author_id
+      LEFT JOIN order_item oi ON b.ISBN = oi.ISBN
+      GROUP BY b.ISBN
+      ORDER BY total_quantity_sold DESC, b.rating DESC
+      LIMIT 10
+    `;
+
+    const [books] = await db.execute(query);
+    res.json(books);
+  } catch (err) {
+    next(err);
+  }
+};

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import '../../styles/homepage.css';
+import { useCart } from '../../context/CartContext';
 
 interface Book {
   ISBN: string;
@@ -16,11 +18,42 @@ interface Book {
 export const TopSellers: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { addToCart: addToCartContext } = useCart();
+
+  const handleAddToCart = async (book: Book, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    setAddingToCart(book.ISBN);
+    try {
+      const cartItem = {
+        ISBN: book.ISBN,
+        Title: book.Title,
+        sellingPrice: Number(book.sellingPrice),
+        Buying_quantity: 1,
+        avatar: book.avatar,
+        author: book.authors,
+      };
+      
+      await addToCartContext(cartItem);
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+    } finally {
+      setAddingToCart(null);
+    }
+  };
 
   useEffect(() => {
     const fetchTopSellers = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/reports/books/top10`);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/books/top10`);
         if (!response.ok) {
           throw new Error('Failed to fetch top sellers');
         }
@@ -127,13 +160,17 @@ export const TopSellers: React.FC = () => {
                     className="book-item-image"
                   />
                   <div className="hover-overlay">
-                    <button className="add-to-cart-btn">
+                    <button
+                      className="add-to-cart-btn"
+                      onClick={(e) => handleAddToCart(book, e)}
+                      disabled={addingToCart === book.ISBN}
+                    >
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="9" cy="21" r="1" />
                         <circle cx="20" cy="21" r="1" />
                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
                       </svg>
-                      Add to Cart
+                      {addingToCart === book.ISBN ? 'Adding...' : 'Add to Cart'}
                     </button>
                   </div>
                 </div>

@@ -87,7 +87,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, getAuthHeader());
         await fetchCart(); // Final sync to get server-calculated prices
       } catch (err: any) {
-        showError(err?.response?.data || "Failed to save item to server");
+        const errorMsg = typeof err?.response?.data === 'string' 
+          ? err.response.data 
+          : err?.response?.data?.message || "Failed to save item to server";
+        showError(errorMsg);
       }
     }
   };

@@ -85,6 +85,14 @@ export const BookGallery: React.FC<BookGalleryProps> = ({ onCartOpen, onBookClic
 
   const handleAddToCart = (book: Book, e: React.MouseEvent) => {
     e.stopPropagation();
+
+     // Check if user is authenticated
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Redirect to login page or show login modal
+      navigate('/login');
+      return;
+    }
     
     const cartItem = {
       ISBN: book.ISBN,
@@ -106,7 +114,7 @@ export const BookGallery: React.FC<BookGalleryProps> = ({ onCartOpen, onBookClic
     if (onBookClick) {
       onBookClick(isbn);
     } else {
-      window.location.href = `/book/${isbn}`;
+      navigate(`/book/${isbn}`);
     }
   };
 
