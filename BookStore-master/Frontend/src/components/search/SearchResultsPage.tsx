@@ -11,6 +11,8 @@ interface Book {
   sellingPrice: number;
   rating: number;
   rating_count: number;
+  publisher_name?: string;
+  Publisher_id?: string;
 }
 
 interface Author {
@@ -53,44 +55,78 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ onCartOpen
         );
         const booksData = await booksResponse.json();
 
-        // Filter and sort books
+        // Filter and sort books (including ISBN and publisher)
         const filteredBooks = (Array.isArray(booksData) ? booksData : [])
           .filter((book: Book) => {
             const title = (book.Title || '').toLowerCase();
             const author = (book.authors || '').toLowerCase();
-            return title.includes(queryLower) || author.includes(queryLower);
+            const isbn = (book.ISBN || '').toLowerCase();
+            const publisher = (book.publisher_name || '').toLowerCase();
+            
+            return title.includes(queryLower) || 
+                   author.includes(queryLower) || 
+                   isbn.includes(queryLower) || 
+                   publisher.includes(queryLower);
           })
           .sort((a, b) => {
             const aTitle = (a.Title || '').toLowerCase();
             const bTitle = (b.Title || '').toLowerCase();
             const aAuthor = (a.authors || '').toLowerCase();
             const bAuthor = (b.authors || '').toLowerCase();
+            const aISBN = (a.ISBN || '').toLowerCase();
+            const bISBN = (b.ISBN || '').toLowerCase();
+            const aPublisher = (a.publisher_name || '').toLowerCase();
+            const bPublisher = (b.publisher_name || '').toLowerCase();
 
-            // Priority 1: Title starts with query
+            // Priority 1: Exact ISBN match
+            const aISBNExact = aISBN === queryLower;
+            const bISBNExact = bISBN === queryLower;
+            if (aISBNExact && !bISBNExact) return -1;
+            if (!aISBNExact && bISBNExact) return 1;
+
+            // Priority 2: ISBN starts with query
+            const aISBNStarts = aISBN.startsWith(queryLower);
+            const bISBNStarts = bISBN.startsWith(queryLower);
+            if (aISBNStarts && !bISBNStarts) return -1;
+            if (!aISBNStarts && bISBNStarts) return 1;
+
+            // Priority 3: Title starts with query
             const aTitleStarts = aTitle.startsWith(queryLower);
             const bTitleStarts = bTitle.startsWith(queryLower);
             if (aTitleStarts && !bTitleStarts) return -1;
             if (!aTitleStarts && bTitleStarts) return 1;
 
-            // Priority 2: Author starts with query
+            // Priority 4: Author starts with query
             const aAuthorStarts = aAuthor.startsWith(queryLower);
             const bAuthorStarts = bAuthor.startsWith(queryLower);
             if (aAuthorStarts && !bAuthorStarts) return -1;
             if (!aAuthorStarts && bAuthorStarts) return 1;
 
-            // Priority 3: Title contains query
+            // Priority 5: Publisher starts with query
+            const aPublisherStarts = aPublisher.startsWith(queryLower);
+            const bPublisherStarts = bPublisher.startsWith(queryLower);
+            if (aPublisherStarts && !bPublisherStarts) return -1;
+            if (!aPublisherStarts && bPublisherStarts) return 1;
+
+            // Priority 6: Title contains query
             const aTitleMatch = aTitle.includes(queryLower);
             const bTitleMatch = bTitle.includes(queryLower);
             if (aTitleMatch && !bTitleMatch) return -1;
             if (!aTitleMatch && bTitleMatch) return 1;
 
-            // Priority 4: Author contains query
+            // Priority 7: Author contains query
             const aAuthorMatch = aAuthor.includes(queryLower);
             const bAuthorMatch = bAuthor.includes(queryLower);
             if (aAuthorMatch && !bAuthorMatch) return -1;
             if (!aAuthorMatch && bAuthorMatch) return 1;
 
-            // Alphabetical
+            // Priority 8: Publisher contains query
+            const aPublisherMatch = aPublisher.includes(queryLower);
+            const bPublisherMatch = bPublisher.includes(queryLower);
+            if (aPublisherMatch && !bPublisherMatch) return -1;
+            if (!aPublisherMatch && bPublisherMatch) return 1;
+
+            // Final: Alphabetical by title
             return aTitle.localeCompare(bTitle);
           });
 
@@ -221,6 +257,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ onCartOpen
         {books.length === 0 && authors.length === 0 ? (
           <div className="no-results">
             <p>No results found for "{query}"</p>
+            <p className="search-hint">Try searching by book title, author name, ISBN, or publisher</p>
             <button className="btn-back" onClick={() => navigate('/')}>
               Back to Home
             </button>
@@ -263,6 +300,9 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ onCartOpen
                       <div className="result-content">
                         <h3 className="result-title">{book.Title}</h3>
                         <p className="result-author">{book.authors}</p>
+                        {book.publisher_name && (
+                          <p className="result-publisher">{book.publisher_name}</p>
+                        )}
                         <div className="result-footer">
                           <span className="result-price">
                             ${Number(book.sellingPrice).toFixed(2)}
