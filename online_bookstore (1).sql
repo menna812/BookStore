@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 20, 2025 at 04:44 PM
+-- Generation Time: Dec 27, 2025 at 03:03 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,55 @@ SET time_zone = "+00:00";
 --
 -- Database: `online_bookstore`
 --
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `checkout_cart` (IN `p_customer_id` INT, IN `p_card` VARCHAR(20), IN `p_expiry` VARCHAR(10))   BEGIN
+    DECLARE v_cart_id INT;
+    DECLARE v_total DECIMAL(10,2);
+    DECLARE v_order_id INT;
+
+    -- Get Cart and Calculate Total Price
+    SELECT cart_id INTO v_cart_id FROM CART WHERE customer_id = p_customer_id LIMIT 1;
+    
+    SELECT SUM(b.sellingPrice * ci.Buying_quantity) INTO v_total
+    FROM CART_ITEM ci JOIN BOOK b ON ci.ISBN = b.ISBN
+    WHERE ci.cart_id = v_cart_id;
+    
+    -- Check if cart is empty
+    IF v_total IS NULL OR v_total = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Cannot checkout an empty cart.';
+    END IF;
+
+    START TRANSACTION;
+        -- A. Create Order
+        INSERT INTO `ORDER` (customer_id, total_amount, status) 
+        VALUES (p_customer_id, v_total, 'Confirmed');
+        SET v_order_id = LAST_INSERT_ID();
+
+        -- B. Move Items to ORDER_ITEM
+        INSERT INTO ORDER_ITEM (order_id, ISBN, quantity)
+        SELECT v_order_id, ISBN, Buying_quantity FROM CART_ITEM WHERE cart_id = v_cart_id;
+
+        -- C. Reduce Stock (This will trigger the BEFORE UPDATE for stock check)
+        -- Note: If stock is insufficient, the BEFORE UPDATE trigger will fail the transaction here.
+        UPDATE BOOK b
+        JOIN CART_ITEM ci ON b.ISBN = ci.ISBN
+        SET b.stock_quantity = b.stock_quantity - ci.Buying_quantity
+        WHERE ci.cart_id = v_cart_id;
+
+        -- D. Clear Cart Items
+        DELETE FROM CART_ITEM WHERE cart_id = v_cart_id;
+        
+        -- E. (Optional) Log credit card transaction to a separate table
+        -- INSERT INTO PAYMENT_LOG (order_id, card_number, expiry) VALUES (v_order_id, p_card, p_expiry);
+
+    COMMIT;
+END$$
+
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -100,18 +149,77 @@ CREATE TABLE `book` (
 --
 
 INSERT INTO `book` (`ISBN`, `Title`, `Publication_year`, `stock_quantity`, `threshold`, `Category`, `sellingPrice`, `Publisher_id`, `avatar`, `rating`, `rating_count`) VALUES
-('9780316055437', 'The Goldfinch', 2013, 90, 20, 'Art', 35.99, 3, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1378710146i/17333223.jpg', 4.4, 11234),
-('9780465050659', 'The Design of Everyday Things', 1988, 85, 18, 'Art', 26.99, 2, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1442460745i/840.jpg', 5.0, 6543),
+('1234567890150', 'Prisoners of Geography', 2025, 0, 60, 'Geography', 20.00, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1432827094i/25135194.jpg', 4.0, 50),
+('1234567890155', 'The War for Middle-earth', 2025, 47, 19, 'Religion', 20.00, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1757720874i/210137478.jpg', 4.0, 50),
+('9780316055437', 'The Goldfinch', 2013, 59, 20, 'Art', 35.99, 3, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1378710146i/17333223.jpg', 4.4, 11234),
+('9780465050659', 'The Design of Everyday Things', 1988, 100, 18, 'Art', 26.99, 2, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1442460745i/840.jpg', 5.0, 6543),
 ('9780553052893', 'Family of Spies', 1988, 55, 10, 'History', 24.99, 2, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1750966099i/222376793.jpg', 5.0, 1131),
-('9780553380163', 'A Brief History of Time', 1988, 95, 20, 'Science', 24.99, 2, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1333578746i/3869.jpg', 4.7, 15234),
-('9780593448168', 'Your Brain on Art: How the Arts Transform Us', 2023, 60, 12, 'Art', 32.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1661865041i/61358662.jpg', 3.9, 4155),
+('9780553380163', 'A Brief History of Time', 1988, 142, 20, 'Science', 24.99, 2, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1333578746i/3869.jpg', 4.7, 15234),
+('9780593448168', 'Your Brain on Art: How the Arts Transform Us', 2023, 59, 12, 'Art', 32.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1661865041i/61358662.jpg', 3.9, 4155),
 ('9780593653210', 'Gemini', 2024, 65, 12, 'History', 31.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1745876622i/222376666.jpg', 4.5, 249),
 ('9780735213616', 'Breath: The New Science Of A Lost Art', 2020, 70, 12, 'Science', 27.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1575339793i/48890486.jpg', 4.8, 10234),
-('9781501144318', 'Why We Sleep: Unlocking the Power of Sleep and Dreams', 2017, 80, 15, 'Science', 28.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1556604137i/34466963.jpg', 4.4, 223839),
-('9781524714215', 'The Anthropocene Reviewed', 2021, 70, 15, 'History', 29.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1616514130i/55145261.jpg', 4.9, 172192),
-('9781590302255', 'The Art of War', 2005, 100, 20, 'History', 19.99, 2, 'https://m.media-amazon.com/images/I/61lBRY5h+NL._SY466_.jpg', 5.0, 565710),
-('9781594634727', 'Big Magic: Creative Living Beyond Fear', 2015, 75, 15, 'Art', 28.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1451446242i/24453082.jpg', 4.0, 233008),
-('9781984868930', 'Dopamine Nation: Finding Balance in the Age of Indulgence', 2021, 65, 15, 'Science', 29.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1629679336i/55723020.jpg', 4.9, 81559);
+('9781501144318', 'Why We Sleep: Unlocking the Power of Sleep and Dreams', 2017, 178, 15, 'Science', 28.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1556604137i/34466963.jpg', 4.4, 223839),
+('9781524714215', 'The Anthropocene Reviewed', 2021, 68, 15, 'History', 29.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1616514130i/55145261.jpg', 4.9, 172192),
+('9781590302255', 'The Art of War', 2005, 98, 20, 'History', 19.99, 2, 'https://m.media-amazon.com/images/I/61lBRY5h+NL._SY466_.jpg', 5.0, 565710),
+('9781594634727', 'Big Magic: Creative Living Beyond Fear', 2015, 74, 15, 'Art', 28.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1451446242i/24453082.jpg', 4.0, 233008),
+('9781984868930', 'Dopamine Nation: Finding Balance in the Age of Indulgence', 2021, 105, 15, 'Science', 29.99, 1, 'https://m.media-amazon.com/images/S/compressed.photo.goodreads.com/books/1629679336i/55723020.jpg', 4.9, 81559);
+
+--
+-- Triggers `book`
+--
+DELIMITER $$
+CREATE TRIGGER `after_book_update_threshold` AFTER UPDATE ON `book` FOR EACH ROW BEGIN
+    -- Check if stock crossed below the threshold
+    IF OLD.stock_quantity >= OLD.threshold AND NEW.stock_quantity < NEW.threshold THEN
+        -- Only insert if there is no pending order for this book and publisher
+        IF NOT EXISTS (
+            SELECT 1
+            FROM ORDER_PUB op
+            JOIN ORDER_PUB_ITEM opi ON op.order_pub_id = opi.order_pub_id
+            WHERE op.publisher_id = NEW.Publisher_id
+              AND opi.ISBN = NEW.ISBN
+              AND op.status = 'Pending'
+        ) THEN
+            INSERT INTO ORDER_PUB (admin_id, publisher_id, status, constant_quantity)
+            VALUES (1, NEW.Publisher_id, 'Pending', 50);
+
+            INSERT INTO ORDER_PUB_ITEM (order_pub_id, ISBN, quantity)
+            VALUES (LAST_INSERT_ID(), NEW.ISBN, 50);
+        END IF;
+    END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `before_book_update_stock` BEFORE UPDATE ON `book` FOR EACH ROW BEGIN
+    IF NEW.stock_quantity < 0 THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Stock cannot be negative';
+    END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `trg_auto_order_from_publisher` AFTER UPDATE ON `book` FOR EACH ROW BEGIN
+    DECLARE v_order_pub_id INT;
+    DECLARE v_constant_qty INT DEFAULT 50;
+    
+    IF OLD.stock_quantity >= OLD.threshold 
+       AND NEW.stock_quantity < NEW.threshold 
+       AND NEW.Publisher_id IS NOT NULL THEN
+        
+        INSERT INTO order_pub (admin_id, publisher_id, order_date, status, constant_quantity)
+        VALUES (4, NEW.Publisher_id, NOW(), 'Pending', v_constant_qty);
+        
+        SET v_order_pub_id = LAST_INSERT_ID();
+        
+        INSERT INTO order_pub_item (order_pub_id, ISBN, quantity)
+        VALUES (v_order_pub_id, NEW.ISBN, v_constant_qty);
+        
+    END IF;
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -129,6 +237,8 @@ CREATE TABLE `book_author` (
 --
 
 INSERT INTO `book_author` (`ISBN`, `author_id`) VALUES
+('1234567890150', 11),
+('1234567890155', 11),
 ('9780316055437', 19),
 ('9780465050659', 17),
 ('9780553052893', 21),
@@ -164,7 +274,8 @@ INSERT INTO `cart` (`cart_id`, `customer_id`) VALUES
 (3, 3),
 (4, 4),
 (5, 5),
-(6, 6);
+(6, 6),
+(13, 7);
 
 -- --------------------------------------------------------
 
@@ -177,6 +288,13 @@ CREATE TABLE `cart_item` (
   `ISBN` varchar(20) NOT NULL,
   `Buying_quantity` int(11) NOT NULL DEFAULT 1
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `cart_item`
+--
+
+INSERT INTO `cart_item` (`cart_id`, `ISBN`, `Buying_quantity`) VALUES
+(13, '1234567890150', 1);
 
 -- --------------------------------------------------------
 
@@ -206,7 +324,7 @@ INSERT INTO `customer` (`customer_id`, `firstname`, `lastname`, `email`, `phone_
 (4, 'Sarah', 'Brown', 'sarah.b@email.com', '+1-555-0104', '321 Elm St, Chicago, IL 60601', 'hashed_password_4', 'https://i.pravatar.cc/150?img=20'),
 (5, 'David', 'Davis', 'david.d@email.com', '+1-555-0105', '654 Maple Dr, Denver, CO 80201', 'hashed_password_5', 'https://i.pravatar.cc/150?img=51'),
 (6, 'John', 'Doe', 'test@example.com', '+1-555-1234', '123 Test St, City, State', '$2b$10$i/KxNPTnnIFPEu7YDqinZujSOJGxhGey2YmmPTgJMpfKjfzgpgqWa', NULL),
-(7, 'nadine', 'mohamed', 'nn@g.com', NULL, NULL, '$2b$10$06cfBjiLbbnvJ1UC9Pzx6ueacXEEEd8EvkJRBvHDHx35hKGjJ8CM6', NULL);
+(7, 'nadine', 'mohamed', 'nn@g.com', '01224830037', 'Alexandria,egypt', '$2b$10$06cfBjiLbbnvJ1UC9Pzx6ueacXEEEd8EvkJRBvHDHx35hKGjJ8CM6', NULL);
 
 -- --------------------------------------------------------
 
@@ -227,11 +345,12 @@ CREATE TABLE `order` (
 --
 
 INSERT INTO `order` (`order_id`, `customer_id`, `order_date`, `total_amount`, `status`) VALUES
-(1, 1, '2024-11-15 10:30:00', 94.97, 'Delivered'),
-(2, 2, '2024-11-20 14:15:00', 52.98, 'Shipped'),
-(3, 3, '2024-12-01 09:45:00', 87.96, 'Processing'),
-(4, 4, '2024-12-05 16:20:00', 30.99, 'Pending'),
-(5, 1, '2024-12-10 11:00:00', 64.98, 'Processing');
+(28, 7, '2025-11-27 00:56:53', 49.17, 'Paid'),
+(29, 7, '2025-12-27 01:00:12', 126.32, 'Paid'),
+(30, 7, '2025-12-27 01:20:14', 37.30, 'Paid'),
+(31, 7, '2025-12-27 03:40:23', 59.38, 'Paid'),
+(32, 7, '2025-12-27 03:48:02', 44.86, 'Paid'),
+(33, 7, '2025-12-27 03:50:07', 27.59, 'Paid');
 
 -- --------------------------------------------------------
 
@@ -244,6 +363,22 @@ CREATE TABLE `order_item` (
   `ISBN` varchar(20) NOT NULL,
   `quantity` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `order_item`
+--
+
+INSERT INTO `order_item` (`order_id`, `ISBN`, `quantity`) VALUES
+(28, '9781590302255', 2),
+(29, '9780553380163', 1),
+(29, '9780593448168', 1),
+(29, '9781524714215', 1),
+(29, '9781594634727', 1),
+(30, '9781501144318', 1),
+(31, '9780553380163', 1),
+(31, '9781524714215', 1),
+(32, '9780316055437', 1),
+(33, '1234567890150', 1);
 
 -- --------------------------------------------------------
 
@@ -265,11 +400,12 @@ CREATE TABLE `order_pub` (
 --
 
 INSERT INTO `order_pub` (`order_pub_id`, `admin_id`, `publisher_id`, `order_date`, `status`, `constant_quantity`) VALUES
-(1, NULL, 1, '2024-11-01 08:00:00', 'Completed', 50),
-(2, NULL, 2, '2024-11-10 09:30:00', 'Completed', 75),
-(3, NULL, 3, '2024-11-25 10:15:00', 'In Transit', 60),
-(4, NULL, 5, '2024-12-05 14:00:00', 'Pending', 40),
-(5, NULL, 2, '2024-12-12 11:30:00', 'Pending', 100);
+(46, 4, 3, '2025-12-27 02:51:06', 'Received', 50),
+(47, 4, 3, '2025-12-27 02:51:06', 'Received', 50),
+(48, 4, 3, '2025-12-27 02:54:57', 'Received', 50),
+(49, 4, 1, '2025-12-27 03:34:16', 'Received', 50),
+(50, 4, 3, '2025-12-27 03:35:26', 'Received', 50),
+(51, 4, 1, '2025-12-27 03:49:27', 'Pending', 50);
 
 -- --------------------------------------------------------
 
@@ -282,6 +418,18 @@ CREATE TABLE `order_pub_item` (
   `ISBN` varchar(13) NOT NULL,
   `quantity` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `order_pub_item`
+--
+
+INSERT INTO `order_pub_item` (`order_pub_id`, `ISBN`, `quantity`) VALUES
+(46, '9780316055437', 50),
+(47, '9780316055437', 50),
+(48, '9780316055437', 50),
+(49, '1234567890150', 50),
+(50, '9780316055437', 50),
+(51, '1234567890150', 50);
 
 -- --------------------------------------------------------
 
@@ -421,8 +569,8 @@ ALTER TABLE `order_item`
 --
 ALTER TABLE `order_pub`
   ADD PRIMARY KEY (`order_pub_id`),
-  ADD KEY `admin_id` (`admin_id`),
-  ADD KEY `publisher_id` (`publisher_id`);
+  ADD KEY `publisher_id` (`publisher_id`),
+  ADD KEY `order_pub_ibfk_1` (`admin_id`);
 
 --
 -- Indexes for table `order_pub_item`
@@ -469,7 +617,7 @@ ALTER TABLE `author`
 -- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
-  MODIFY `cart_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `cart_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `customer`
@@ -481,13 +629,13 @@ ALTER TABLE `customer`
 -- AUTO_INCREMENT for table `order`
 --
 ALTER TABLE `order`
-  MODIFY `order_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `order_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT for table `order_pub`
 --
 ALTER TABLE `order_pub`
-  MODIFY `order_pub_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `order_pub_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
 
 --
 -- AUTO_INCREMENT for table `publisher`
@@ -542,7 +690,7 @@ ALTER TABLE `order_item`
 -- Constraints for table `order_pub`
 --
 ALTER TABLE `order_pub`
-  ADD CONSTRAINT `order_pub_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `admin` (`admin_id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `order_pub_ibfk_1` FOREIGN KEY (`admin_id`) REFERENCES `admin` (`admin_id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `order_pub_ibfk_2` FOREIGN KEY (`publisher_id`) REFERENCES `publisher` (`Publisher_id`) ON DELETE CASCADE;
 
 --
