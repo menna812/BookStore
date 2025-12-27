@@ -64,7 +64,7 @@ const AdminDashboard = () => {
 
   const menuItems = [
     { id: "books", label: "Books Management", icon: BookOpen },
-    { id: "stock", label: "Stock Management", icon: Package },
+    // { id: "stock", label: "Stock Management", icon: Package },
     { id: "orders", label: "Publisher Orders", icon: ShoppingCart },
     { id: "reports", label: "Reports", icon: BarChart3 },
     { id: "customers", label: "Customers", icon: Users },
@@ -75,8 +75,8 @@ const AdminDashboard = () => {
     switch (activeMenu) {
       case "books":
         return <BooksManagement />;
-      case "stock":
-        return <StockManagement />;
+      // case "stock":
+      //   return <StockManagement />; // (commented out, Stock Management will not render)
       case "orders":
         return <PublisherOrders />;
       case "reports":
@@ -518,7 +518,7 @@ const BooksManagement = () => {
                 placeholder="Publication Year"
                 value={newBook.year}
                 onChange={handleChange}
-                required
+                //required
               />
               <input
                 name="stock"
@@ -584,7 +584,7 @@ const BooksManagement = () => {
                 placeholder="Publisher ID"
                 value={newBook.publisher_id}
                 onChange={handleChange}
-                required
+                //required
               />
               <input
                 name="author_ids"
@@ -794,223 +794,175 @@ const BooksManagement = () => {
 };
 
 // Stock Management Component
-const StockManagement = () => {
-  const [stats, setStats] = useState({
-    lowStock: 0,
-    outOfStock: 0,
-    totalBooks: 0,
-  });
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [orderingIsbn, setOrderingIsbn] = useState<string | null>(null);
-  const token = localStorage.getItem("token");
-  const API_URL = "http://localhost:3000/api";
+// const StockManagement = () => {
+//   const [stats, setStats] = useState({
+//     lowStock: 0,
+//     outOfStock: 0,
+//     totalBooks: 0,
+//   });
+//   const [alerts, setAlerts] = useState<any[]>([]);
+//   const [loading, setLoading] = useState(true);
+//   // Removed orderingIsbn and manual order logic
+//   const token = localStorage.getItem("token");
+//   const API_URL = "http://localhost:3000/api";
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [statsRes, alertsRes] = await Promise.all([
-        fetch(`${API_URL}/admin/stock/stats`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`${API_URL}/admin/stock/alerts`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-      ]);
+//   const fetchData = async () => {
+//     setLoading(true);
+//     try {
+//       const [statsRes, alertsRes] = await Promise.all([
+//         fetch(`${API_URL}/admin/stock/stats`, {
+//           headers: { Authorization: `Bearer ${token}` },
+//         }),
+//         fetch(`${API_URL}/admin/stock/alerts`, {
+//           headers: { Authorization: `Bearer ${token}` },
+//         }),
+//       ]);
 
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setStats(statsData);
-      }
-      if (alertsRes.ok) {
-        const alertsData = await alertsRes.json();
-        setAlerts(alertsData);
-      }
-    } catch (err) {
-      console.error("Failed to fetch stock data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+//       if (statsRes.ok) {
+//         const statsData = await statsRes.json();
+//         setStats(statsData);
+//       }
+//       if (alertsRes.ok) {
+//         const alertsData = await alertsRes.json();
+//         setAlerts(alertsData);
+//       }
+//     } catch (err) {
+//       console.error("Failed to fetch stock data:", err);
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+//   useEffect(() => {
+//     fetchData();
+//   }, []);
 
-  const handlePlaceOrder = async (isbn: string) => {
-    if (!confirm(`Place a publisher order for 50 units of this book?`)) return;
+//   // Removed handlePlaceOrder: publisher orders are now created only by the trigger
 
-    setOrderingIsbn(isbn);
-    try {
-      const res = await fetch(`${API_URL}/admin/orders/place`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ isbn, quantity: 50 }),
-      });
+//   if (loading) {
+//     return (
+//       <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>
+//         Loading stock data...
+//       </div>
+//     );
+//   }
 
-      if (res.ok) {
-        alert("Publisher order placed successfully!");
-        fetchData(); // Refresh data
-      } else {
-        const err = await res.json();
-        alert(`Failed to place order: ${err.message}`);
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Network error placing order");
-    } finally {
-      setOrderingIsbn(null);
-    }
-  };
+//   return (
+//     <div className="flex-column gap-4">
+//       <div className="flex gap-4" style={{ flexWrap: "wrap" }}>
+//         <div className="card card-red" style={{ flex: "1 1 220px" }}>
+//           <div
+//             className="flex"
+//             style={{ justifyContent: "space-between", alignItems: "center" }}
+//           >
+//             <div>
+//               <h3 className="card-title">Low Stock Books</h3>
+//               <p className="card-number" style={{ color: "#dc2626" }}>
+//                 {stats.lowStock}
+//               </p>
+//               <p className="card-subtitle">Books below threshold</p>
+//             </div>
+//             <Package size={60} style={{ opacity: 0.2 }} />
+//           </div>
+//         </div>
 
-  if (loading) {
-    return (
-      <div className="card" style={{ borderLeft: "none", textAlign: "center" }}>
-        Loading stock data...
-      </div>
-    );
-  }
+//         <div className="card card-orange" style={{ flex: "1 1 220px" }}>
+//           <div
+//             className="flex"
+//             style={{ justifyContent: "space-between", alignItems: "center" }}
+//           >
+//             <div>
+//               <h3 className="card-title">Out of Stock</h3>
+//               <p className="card-number" style={{ color: "#ea580c" }}>
+//                 {stats.outOfStock}
+//               </p>
+//               <p className="card-subtitle">Books need reordering</p>
+//             </div>
+//             <Package size={60} style={{ opacity: 0.2 }} />
+//           </div>
+//         </div>
 
-  return (
-    <div className="flex-column gap-4">
-      <div className="flex gap-4" style={{ flexWrap: "wrap" }}>
-        <div className="card card-red" style={{ flex: "1 1 220px" }}>
-          <div
-            className="flex"
-            style={{ justifyContent: "space-between", alignItems: "center" }}
-          >
-            <div>
-              <h3 className="card-title">Low Stock Books</h3>
-              <p className="card-number" style={{ color: "#dc2626" }}>
-                {stats.lowStock}
-              </p>
-              <p className="card-subtitle">Books below threshold</p>
-            </div>
-            <Package size={60} style={{ opacity: 0.2 }} />
-          </div>
-        </div>
+//         <div className="card card-green" style={{ flex: "1 1 220px" }}>
+//           <div
+//             className="flex"
+//             style={{ justifyContent: "space-between", alignItems: "center" }}
+//           >
+//             <div>
+//               <h3 className="card-title">Total Books</h3>
+//               <p className="card-number" style={{ color: "#16a34a" }}>
+//                 {stats.totalBooks}
+//               </p>
+//               <p className="card-subtitle">Books in inventory</p>
+//             </div>
+//             <BookOpen size={60} style={{ opacity: 0.2 }} />
+//           </div>
+//         </div>
+//       </div>
 
-        <div className="card card-orange" style={{ flex: "1 1 220px" }}>
-          <div
-            className="flex"
-            style={{ justifyContent: "space-between", alignItems: "center" }}
-          >
-            <div>
-              <h3 className="card-title">Out of Stock</h3>
-              <p className="card-number" style={{ color: "#ea580c" }}>
-                {stats.outOfStock}
-              </p>
-              <p className="card-subtitle">Books need reordering</p>
-            </div>
-            <Package size={60} style={{ opacity: 0.2 }} />
-          </div>
-        </div>
-
-        <div className="card card-green" style={{ flex: "1 1 220px" }}>
-          <div
-            className="flex"
-            style={{ justifyContent: "space-between", alignItems: "center" }}
-          >
-            <div>
-              <h3 className="card-title">Total Books</h3>
-              <p className="card-number" style={{ color: "#16a34a" }}>
-                {stats.totalBooks}
-              </p>
-              <p className="card-subtitle">Books in inventory</p>
-            </div>
-            <BookOpen size={60} style={{ opacity: 0.2 }} />
-          </div>
-        </div>
-      </div>
-
-      <div className="card" style={{ borderLeft: "none" }}>
-        <h3 className="card-title" style={{ marginBottom: "16px" }}>
-          Books Requiring Attention
-        </h3>
-        {alerts.length === 0 ? (
-          <p className="card-subtitle">All books are sufficiently stocked!</p>
-        ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>ISBN</th>
-                <th>Title</th>
-                <th>Stock</th>
-                <th>Threshold</th>
-                <th>Status</th>
-                <th>Publisher</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {alerts.map((book) => (
-                <tr key={book.ISBN}>
-                  <td style={{ fontFamily: "monospace", fontSize: "12px" }}>
-                    {book.ISBN}
-                  </td>
-                  <td>{book.Title}</td>
-                  <td
-                    style={{
-                      fontWeight: "bold",
-                      color: book.stock_quantity === 0 ? "#dc2626" : "#ea580c",
-                    }}
-                  >
-                    {book.stock_quantity}
-                  </td>
-                  <td>{book.threshold}</td>
-                  <td>
-                    <span
-                      style={{
-                        padding: "4px 8px",
-                        borderRadius: "12px",
-                        fontSize: "12px",
-                        fontWeight: "500",
-                        backgroundColor:
-                          book.alert_type === "Out of Stock"
-                            ? "#fee2e2"
-                            : "#ffedd5",
-                        color:
-                          book.alert_type === "Out of Stock"
-                            ? "#dc2626"
-                            : "#ea580c",
-                      }}
-                    >
-                      {book.alert_type}
-                    </span>
-                  </td>
-                  <td>{book.publisher_name || "N/A"}</td>
-                  <td>
-                    <button
-                      onClick={() => handlePlaceOrder(book.ISBN)}
-                      disabled={
-                        orderingIsbn === book.ISBN || !book.Publisher_id
-                      }
-                      style={{
-                        padding: "6px 12px",
-                        backgroundColor: "#2563eb",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "6px",
-                        cursor: book.Publisher_id ? "pointer" : "not-allowed",
-                        opacity: orderingIsbn === book.ISBN ? 0.5 : 1,
-                        fontSize: "12px",
-                      }}
-                    >
-                      {orderingIsbn === book.ISBN ? "Ordering..." : "Order 50"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
-  );
-};
+//       <div className="card" style={{ borderLeft: "none" }}>
+//         <h3 className="card-title" style={{ marginBottom: "16px" }}>
+//           Books Requiring Attention
+//         </h3>
+//         {alerts.length === 0 ? (
+//           <p className="card-subtitle">All books are sufficiently stocked!</p>
+//         ) : (
+//           <table className="table">
+//             <thead>
+//               <tr>
+//                 <th>ISBN</th>
+//                 <th>Title</th>
+//                 <th>Stock</th>
+//                 <th>Threshold</th>
+//                 <th>Status</th>
+//                 <th>Publisher</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               {alerts.map((book) => (
+//                 <tr key={book.ISBN}>
+//                   <td style={{ fontFamily: "monospace", fontSize: "12px" }}>
+//                     {book.ISBN}
+//                   </td>
+//                   <td>{book.Title}</td>
+//                   <td
+//                     style={{
+//                       fontWeight: "bold",
+//                       color: book.stock_quantity === 0 ? "#dc2626" : "#ea580c",
+//                     }}
+//                   >
+//                     {book.stock_quantity}
+//                   </td>
+//                   <td>{book.threshold}</td>
+//                   <td>
+//                     <span
+//                       style={{
+//                         padding: "4px 8px",
+//                         borderRadius: "12px",
+//                         fontSize: "12px",
+//                         fontWeight: "500",
+//                         backgroundColor:
+//                           book.alert_type === "Out of Stock"
+//                             ? "#fee2e2"
+//                             : "#ffedd5",
+//                         color:
+//                           book.alert_type === "Out of Stock"
+//                             ? "#dc2626"
+//                             : "#ea580c",
+//                       }}
+//                     >
+//                       {book.alert_type}
+//                     </span>
+//                   </td>
+//                   <td>{book.publisher_name || "N/A"}</td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         )}
+//       </div>
+//     </div>
+//   );
+// };
 
 // Publisher Orders Component
 const PublisherOrders = () => {

@@ -18,7 +18,7 @@ router.get("/stock/alerts", adminController.getStockAlerts);
 
 // Publisher Orders
 router.get("/orders/all", adminController.getAllPublisherOrders);
-router.post("/orders/place", adminController.placePublisherOrder);
+// router.post("/orders/place", adminController.placePublisherOrder);
 router.get(
   "/replenishment/pending",
   adminController.getPendingReplenishmentOrders

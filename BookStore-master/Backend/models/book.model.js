@@ -26,6 +26,10 @@ class Book {
       query += ` AND a.author_name LIKE ?`;
       params.push(`%${filters.author}%`);
     }
+    if (filters.publisher) {
+      query += ` AND p.name LIKE ?`;
+      params.push(`%${filters.publisher}%`);
+    }
     query += ` GROUP BY b.ISBN`;
 
     const [rows] = await db.execute(query, params);
