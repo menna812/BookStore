@@ -685,14 +685,6 @@ const BooksManagement = () => {
               <option value="Geography">Geography</option>
             </select>
             <button
-              className="search-btn"
-              type="button"
-              onClick={() => fetchBooks(searchTerm, categoryFilter)}
-            >
-              <Search size={16} />
-              Search
-            </button>
-            <button
               className="clear-btn"
               type="button"
               onClick={() => {
