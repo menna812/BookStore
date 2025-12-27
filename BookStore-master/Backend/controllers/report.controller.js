@@ -12,7 +12,7 @@ exports.getSalesLastMonth = async (req, res, next) => {
     const [rows] = await db.execute(query);
     res.json({ total_sales: parseFloat(rows[0].total_sales) || 0 });
   } catch (err) {
-    next(err);
+    res.status(500).json({ error: 'Failed to fetch last month sales report. Please try again later.' });
   }
 };
 
@@ -81,16 +81,22 @@ exports.getBookReplenishmentCount = async (req, res, next) => {
   try {
     const targetISBN = req.params.isbn;
 
-    const query = `
-            SELECT b.Title, COUNT(opi.order_pub_id) AS times_replenished
-            FROM BOOK b
-            JOIN ORDER_PUB_ITEM opi ON b.ISBN = opi.ISBN
-            WHERE b.ISBN = ?
-            GROUP BY b.ISBN
-        `;
-    const [rows] = await db.execute(query, [targetISBN]);
-    res.json(rows[0]);
+    // First, check if the book exists
+    const [bookRows] = await db.execute('SELECT Title FROM BOOK WHERE ISBN = ?', [targetISBN]);
+    if (bookRows.length === 0) {
+      return res.status(404).json({ error: `No book found with ISBN: ${targetISBN}` });
+    }
+
+    // Now, check replenishment count
+    const [rows] = await db.execute(`
+      SELECT COUNT(opi.order_pub_id) AS times_replenished
+      FROM ORDER_PUB_ITEM opi
+      WHERE opi.ISBN = ?
+    `, [targetISBN]);
+
+    const times_replenished = rows[0]?.times_replenished || 0;
+    res.json({ Title: bookRows[0].Title, times_replenished });
   } catch (err) {
-    next(err);
+    res.status(500).json({ error: 'Failed to fetch replenishment report. Please try again later.' });
   }
 };

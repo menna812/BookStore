@@ -1258,11 +1258,19 @@ const Reports = () => {
       setError("Please enter an ISBN");
       return;
     }
+    if(searchIsbn.length !== 13 || !/^\d{13}$/.test(searchIsbn)) {
+      setError("Please enter a valid 13-digit ISBN");
+      return;
+    }
     setActiveReport("replenishment");
     const data = await fetchReport(
       `/reports/books/replenishment/${searchIsbn}`
     );
+    if (data && data.count === 0) {
+      setError("No replenishment records found for this ISBN");
+    }
     if (data) setReplenishmentData(data);
+    
   };
 
   return (

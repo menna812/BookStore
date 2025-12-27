@@ -16,7 +16,7 @@ export const HomePage: React.FC = () => {
       <TopSellers />
       <BookGallery />
       <CategoryIcons />
-      <Categories />
+      {/* <Categories /> */}
       <FeaturedAuthors />
     </div>
   );
