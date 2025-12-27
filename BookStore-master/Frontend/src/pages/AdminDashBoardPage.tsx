@@ -531,7 +531,7 @@ const BooksManagement = () => {
               <input
                 name="threshold"
                 type="number"
-                placeholder="Threshold (optional)"
+                placeholder="Threshold"
                 value={newBook.threshold}
                 onChange={handleChange}
               />
@@ -565,7 +565,7 @@ const BooksManagement = () => {
                 step="0.1"
                 min="0"
                 max="5"
-                placeholder="Rating (0-5, optional)"
+                placeholder="Rating (0-5)"
                 value={newBook.rating}
                 onChange={handleChange}
               />
@@ -573,7 +573,7 @@ const BooksManagement = () => {
                 name="rating_count"
                 type="number"
                 min="0"
-                placeholder="Rating count (optional)"
+                placeholder="Rating count"
                 value={newBook.rating_count}
                 onChange={handleChange}
               />
