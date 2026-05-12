@@ -23,19 +23,27 @@ const handleLogin = async (req, res, next, model, schema, role) => {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
-    // 3. JWT Generation (Sets the correct ID key based on user type)
+    // Get the user ID (handles both customer_id and id fields)
+    const userId = user.customer_id || user.id || user.admin_id;
+
+    // 3. JWT Generation
     const token = jwt.sign(
-      { userId: user.customer_id || user.admin_id, role: role },
+      { userId: userId, role: role },
       process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
 
-    // 4. Success Response
-    // returns a token to identify the admin
+    // 4. Fetch full user details to include name
+    const fullUser = await model.findById(userId);
+    const { password: _, ...safeUser } = fullUser;
+    safeUser.fullName = `${safeUser.firstname || ''} ${safeUser.lastname || ''}`.trim();
+
+    // 5. Success Response with full user data
     res.json({
       token,
       role: role,
-      userId: user.customer_id || user.admin_id,
+      userId: userId,
+      user: safeUser,
     });
   } catch (err) {
     next(err);
@@ -97,6 +105,9 @@ exports.getCurrentUser = async (req, res, next) => {
 
     // Exclude sensitive fields like password
     const { password, ...safeUser } = user;
+
+    // Add fullName by combining firstname and lastname
+    safeUser.fullName = `${safeUser.firstname || ''} ${safeUser.lastname || ''}`.trim();
 
     res.json(safeUser);
   } catch (err) {

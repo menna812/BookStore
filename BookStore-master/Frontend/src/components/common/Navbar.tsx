@@ -14,14 +14,14 @@ export const Header: React.FC = () => {
   const { getCartCount, clearCart } = useCart();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  
+
   // Debug: Log user state
   console.log('🔍 Header - User:', user);
   console.log('🔍 Header - Is Logged In:', !!user);
-  
+
   // Check if user is logged in
   const isLoggedIn = !!user;
-  
+
   // Logout handler
   const handleLogout = () => {
     console.log('🔍 Logging out...');
@@ -37,7 +37,7 @@ export const Header: React.FC = () => {
     <>
       <header className="header">
         <div className="header-container">
-          
+
           {/* Logo Section */}
           <div className="header-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             <div className="logo-icon">
@@ -81,14 +81,14 @@ export const Header: React.FC = () => {
               </>
             ) : (
               <>
-                <span className="user-greeting">Hi, {user.fullName}</span>
+                <span className="user-greeting">Hi, {user.fullName || `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.email}</span>
                 <a href="/profile" className="header-icon-btn" aria-label="Profile">
                   <UserIcon size={20} />
                 </a>
-                <button 
-                  className="header-icon-btn" 
-                  onClick={handleLogout} 
-                  aria-label="Logout" 
+                <button
+                  className="header-icon-btn"
+                  onClick={handleLogout}
+                  aria-label="Logout"
                   title="Logout"
                 >
                   <LogOut size={20} />
@@ -96,7 +96,7 @@ export const Header: React.FC = () => {
               </>
             )}
 
-            <button 
+            <button
               className="header-icon-btn mobile-menu-btn"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-label="Menu"
