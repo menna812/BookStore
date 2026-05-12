@@ -20,7 +20,7 @@
     "jsx": "react-jsx",
     "types": [
       "node"
-    ] // ✅ Include Node types for process.env
+    ]
   },
   "include": [
     "src"
